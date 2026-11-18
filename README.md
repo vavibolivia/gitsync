@@ -21,7 +21,8 @@
 - **역방향(GitLab → GitHub)** 동기화도 지원합니다.
 - **두 가지 실행 방식**
   - **Windows 데스크톱 앱** (WPF, 단일 exe, .NET 설치 불필요)
-  - **서버 모드** — podman 컨테이너(API) + nginx(웹 UI). 브라우저로 접속하고, 주기적 자동 동기화를 설정할 수 있습니다.
+  - **서버 모드** — podman 컨테이너(API) + nginx(웹 UI). 주기적 자동 동기화를 설정할 수 있습니다.
+    서버는 **WPF 앱(설정 → 실행 위치 → GitSync 서버에 연결)** 또는 브라우저로 제어합니다.
 - **토큰 보호** — 데스크톱은 Windows DPAPI로 암호화 저장, git 명령에는 환경변수로만 전달되어 명령줄이나 git 설정에 남지 않습니다.
 
 ## 빠른 시작 (Windows)
@@ -73,7 +74,7 @@ Windows에서 원격 서버로 바로 배포 (소스를 복사한 뒤 **그 서�
 
 **같은 이름의 기존 이미지가 podman에 있으면 (태그와 관계없이) 그 이미지와 이를 사용하는 컨테이너·pod를 먼저 삭제한 뒤** 새로 빌드합니다.
 
-배포가 끝나면 `http://서버:8080`으로 접속해 접근 키를 입력하고, 설정 화면에서 토큰을 저장하면 됩니다. 토큰은 환경변수(`GITSYNC_GITHUB_TOKEN`, `GITSYNC_GITLAB_TOKEN`, `GITSYNC_GITLAB_URL` …)로도 줄 수 있습니다.
+배포가 끝나면 WPF 앱의 **설정 → 실행 위치 → GitSync 서버에 연결**에 서버 주소와 접근 키를 넣거나, 브라우저로 `http://서버:8080`에 접속해 접근 키를 입력하고, 설정 화면에서 토큰을 저장하면 됩니다. 토큰은 환경변수(`GITSYNC_GITHUB_TOKEN`, `GITSYNC_GITLAB_TOKEN`, `GITSYNC_GITLAB_URL` …)로도 줄 수 있습니다.
 
 ![GitSync web](docs/web-settings.png)
 
@@ -123,6 +124,10 @@ dotnet publish src/GitSync.Desktop -c Release -r win-x64 --self-contained -p:Pub
 | `deploy/` | Containerfile, nginx.conf, podman 배포 스크립트 |
 
 요구 사항: .NET 10 SDK, git 2.31+
+
+## 검수
+
+[docs/QA-PLAN.md](docs/QA-PLAN.md) — 검수 계획과 결과 (자동 시험 23건 + 실제 브라우저/화면 시험)
 
 ## 라이선스
 

@@ -97,12 +97,12 @@ podman run -d --pod "$POD" --name "${NAME}-api" --restart unless-stopped \
 podman run -d --pod "$POD" --name "${NAME}-web" --restart unless-stopped \
   "${WEB_IMG}:${TAG}" >/dev/null
 
-for i in $(seq 1 30); do
+for _ in $(seq 1 30); do
   curl -fs "http://127.0.0.1:${PORT}/api/health" >/dev/null 2>&1 && break
   sleep 1
 done
 
-HOSTIP=$(hostname -I 2>/dev/null | awk '{print $1}')
+HOSTIP=$( (hostname -I 2>/dev/null || true) | awk '{print $1}')
 ok "배포 완료"
 echo "   웹 UI    : http://${HOSTIP:-localhost}:${PORT}"
 echo "   접근 키  : $KEY   (저장 위치: $DATA/access-key)"

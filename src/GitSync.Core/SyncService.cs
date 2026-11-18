@@ -4,9 +4,57 @@ namespace GitSync.Core;
 /// High level operations shared by the desktop app and the server:
 /// scan all repositories, compare branches, create missing repositories/branches and push.
 /// </summary>
-public sealed class SyncService : IDisposable
+public sealed class SyncService : ISyncBackend
 {
     private readonly GitMirror _git;
+
+    public bool IsRemote => false;
+    public string Location => "이 PC";
+    public bool CreateMissingRepos => Options.CreateMissingRepos;
+    public bool SyncTags => Options.SyncTags;
+    public int MaxParallel => Math.Clamp(Options.MaxParallel, 1, 8);
+
+    Task<List<RepoPair>> ISyncBackend.ScanAsync(IProgress<string>? progress, CancellationToken ct) => ScanAsync(ct);
+
+    public async Task AnalyzeManyAsync(IReadOnlyList<RepoPair> pairs, IProgress<(string Message, double Percent)>? progress = null,
+        CancellationToken ct = default)
+    {
+        var targets = pairs.Where(p => p.HasBoth).ToList();
+        await ForEachAsync(targets, "정밀 분석", async p =>
+        {
+            try { await AnalyzeAsync(p, null, ct); } catch (SyncException) { /* logged, pair marked as error */ }
+        }, progress, ct);
+    }
+
+    public async Task<List<SyncResult>> SyncManyAsync(IReadOnlyList<RepoPair> pairs, Provider from,
+        IProgress<(string Message, double Percent)>? progress = null, CancellationToken ct = default)
+    {
+        var results = new List<SyncResult>();
+        var targets = pairs.Where(p => p.Get(from) is not null).ToList();
+        await ForEachAsync(targets, $"{from.Other().Label()}로 동기화", async p =>
+        {
+            var r = await SyncAsync(p, from, null, ct);
+            lock (results) results.Add(r);
+        }, progress, ct);
+        Log.Write(results.All(r => r.Ok) ? SyncLogLevel.Success : SyncLogLevel.Warning,
+            $"일괄 동기화 완료 · 생성 {results.Count(r => r.CreatedRepo)} · 브랜치 푸시 {results.Sum(r => r.Pushed)} · 실패 {results.Count(r => !r.Ok)}", "bulk");
+        return results;
+    }
+
+    private async Task ForEachAsync(IReadOnlyList<RepoPair> items, string label, Func<RepoPair, Task> work,
+        IProgress<(string, double)>? progress, CancellationToken ct)
+    {
+        if (items.Count == 0) return;
+        int done = 0;
+        progress?.Report(($"{label} 0/{items.Count}", 0));
+        await Parallel.ForEachAsync(items, new ParallelOptions { MaxDegreeOfParallelism = MaxParallel, CancellationToken = ct },
+            async (item, _) =>
+            {
+                await work(item);
+                var n = Interlocked.Increment(ref done);
+                progress?.Report(($"{label} {n}/{items.Count}", n * 100.0 / items.Count));
+            });
+    }
 
     public SyncOptions Options { get; }
     public SyncLogger Log { get; }

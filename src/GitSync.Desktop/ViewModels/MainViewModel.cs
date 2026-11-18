@@ -19,7 +19,10 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<RepoPairViewModel> Pairs { get; } = new();
     public ICollectionView PairsView { get; }
     public SettingsViewModel Settings { get; }
-    public SyncService? Service { get; private set; }
+    public ISyncBackend? Backend { get; private set; }
+    public bool IsServerMode => Backend?.IsRemote == true;
+    public string ExecutionLocation => Backend is { IsRemote: true } b ? $"서버 · {b.Location}" : "이 PC";
+    private readonly DispatcherTimer _remoteLogTimer = new() { Interval = TimeSpan.FromSeconds(5) };
 
     public MainViewModel()
     {
@@ -35,6 +38,11 @@ public sealed class MainViewModel : ObservableObject
 
         Settings = new SettingsViewModel(this);
         _toastTimer.Tick += (_, _) => { ToastVisible = false; _toastTimer.Stop(); };
+        _remoteLogTimer.Tick += async (_, _) =>
+        {
+            if (Backend is RemoteSyncClient r && !IsBusy)
+                try { await r.PullLogsAsync(); } catch { /* server unreachable: shown on next action */ }
+        };
 
         NavigateCommand = new RelayCommand(p => CurrentPage = p as string ?? "Repos");
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => !IsBusy);
@@ -141,20 +149,42 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task InitializeAsync()
     {
-        ApplySettings(Settings.ToOptions(), refresh: false);
-        Logger.Info("GitSync 시작", "app");
+        ApplySettings(refresh: false);
+        Logger.Info($"GitSync 시작 · 실행 위치: {ExecutionLocation}", "app");
         if (Settings.IsConfigured) await RefreshAsync();
         else
         {
             CurrentPage = "Settings";
-            ShowToast("먼저 GitHub와 GitLab 접근 토큰을 설정하세요.", "Warning");
+            ShowToast("먼저 GitHub와 GitLab 접근 토큰(또는 GitSync 서버 주소)을 설정하세요.", "Warning");
         }
     }
 
-    public void ApplySettings(SyncOptions options, bool refresh)
+    public void ApplySettings(bool refresh)
     {
-        Service?.Dispose();
-        Service = new SyncService(options, Logger);
+        Backend?.Dispose();
+        Backend = null;
+        _remoteLogTimer.Stop();
+        var s = Settings.ToDesktopSettings();
+        try
+        {
+            if (s.IsServer)
+            {
+                Backend = new RemoteSyncClient(s.ServerUrl, s.ServerKey, Logger);
+                _remoteLogTimer.Start();
+            }
+            else Backend = new SyncService(s.Options, Logger);
+        }
+        catch (Exception ex)
+        {
+            ShowToast(ex.Message, "Error");
+            refresh = false;
+        }
+        Pairs.Clear();
+        SelectedPair = null;
+        GitHubUser = GitLabUser = null;
+        UpdateStats();
+        OnPropertyChanged(nameof(IsServerMode));
+        OnPropertyChanged(nameof(ExecutionLocation));
         OnPropertyChanged(nameof(GitHubHost));
         OnPropertyChanged(nameof(GitLabHost));
         OnPropertyChanged(nameof(IsConfigured));
@@ -165,13 +195,13 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task RefreshAsync()
     {
-        if (Service is null || !Settings.IsConfigured)
+        if (Backend is null || !Settings.IsConfigured)
         {
             CurrentPage = "Settings";
-            ShowToast("GitHub와 GitLab 토큰을 모두 설정해야 합니다.", "Warning");
+            ShowToast(Settings.IsServerMode ? "GitSync 서버 주소를 설정해야 합니다." : "GitHub와 GitLab 토큰을 모두 설정해야 합니다.", "Warning");
             return;
         }
-        var svc = Service;
+        var svc = Backend;
         IsBusy = true;
         try
         {
@@ -181,16 +211,25 @@ public sealed class MainViewModel : ObservableObject
             try { GitHubUser = await u1; } catch { GitHubUser = null; throw; }
             try { GitLabUser = await u2; } catch { GitLabUser = null; throw; }
 
-            BusyMessage = "모든 저장소 검색 중…";
-            var pairs = await svc.ScanAsync();
+            BusyMessage = svc.IsRemote ? $"서버({svc.Location})에서 모든 저장소 검색 중…" : "모든 저장소 검색 중…";
+            var pairs = await svc.ScanAsync(new Progress<string>(m => BusyMessage = m));
+            if (svc is RemoteSyncClient rc)
+            {
+                await Settings.LoadFromServerAsync(rc);
+                OnPropertyChanged(nameof(GitHubHost));
+                OnPropertyChanged(nameof(GitLabHost));
+            }
             var selectedId = SelectedPair?.Id;
             Pairs.Clear();
             foreach (var p in pairs) Pairs.Add(new RepoPairViewModel(this, p));
             SelectedPair = Pairs.FirstOrDefault(p => p.Id == selectedId) ?? PairsView.Cast<RepoPairViewModel>().FirstOrDefault();
             UpdateStats();
 
-            var both = Pairs.Where(p => p.HasBoth).ToList();
-            await RunBatchAsync(both, 6, "브랜치 비교", p => p.QuickCompareAsync(), CancellationToken.None);
+            if (!svc.IsRemote)   // the server already compared during its scan job
+            {
+                var both = Pairs.Where(p => p.HasBoth).ToList();
+                await RunBatchAsync(both, 6, "브랜치 비교", p => p.QuickCompareAsync(), CancellationToken.None);
+            }
             LastScanText = $"마지막 스캔 {DateTime.Now:HH:mm:ss}";
             ShowToast($"{Pairs.Count}개 저장소 검색 완료 · 차이 {OutOfSyncCount} · GitHub만 {GitHubOnlyCount} · GitLab만 {GitLabOnlyCount}", "Success");
         }
@@ -211,7 +250,10 @@ public sealed class MainViewModel : ObservableObject
     {
         var targets = VisiblePairs().Where(p => p.HasBoth).ToList();
         if (targets.Count == 0) { ShowToast("분석할 저장소가 없습니다 (양쪽에 모두 있는 저장소만 분석).", "Warning"); return; }
-        await RunBulkAsync("정밀 분석", targets, p => p.AnalyzeAsync(showToast: false));
+        if (Backend is { IsRemote: true } remote)
+            await RunRemoteBulkAsync("정밀 분석", targets, (pairs, prog, ct) => remote.AnalyzeManyAsync(pairs, prog, ct));
+        else
+            await RunBulkAsync("정밀 분석", targets, p => p.AnalyzeAsync(showToast: false));
         ShowToast($"{targets.Count}개 저장소 분석 완료", "Success");
     }
 
@@ -226,10 +268,10 @@ public sealed class MainViewModel : ObservableObject
         {
             $"대상 저장소: {targets.Count}개 (현재 목록 기준)",
             create > 0
-                ? (Settings.CreateMissingRepos ? $"{to.Label()}에 새로 생성: {create}개" : $"{to.Label()}에 없는 {create}개는 자동 생성이 꺼져 있어 건너뜀")
+                ? (Backend!.CreateMissingRepos ? $"{to.Label()}에 새로 생성: {create}개" : $"{to.Label()}에 없는 {create}개는 자동 생성이 꺼져 있어 건너뜀")
                 : $"{to.Label()}에 없는 저장소 없음",
             "새 브랜치 생성 + fast-forward 가능한 브랜치 업데이트",
-            Settings.SyncTags ? "누락된 태그 푸시" : "태그는 동기화하지 않음",
+            Backend.SyncTags ? "누락된 태그 푸시" : "태그는 동기화하지 않음",
             "분기된 브랜치는 덮어쓰지 않고 건너뜀",
         };
         if (!Dialogs.Confirm($"{from.Label()} → {to.Label()} 일괄 동기화",
@@ -237,11 +279,15 @@ public sealed class MainViewModel : ObservableObject
             return;
 
         var results = new List<SyncResult>();
-        await RunBulkAsync($"{to.Label()}로 동기화", targets, async p =>
-        {
-            var r = await p.SyncAsync(from, interactive: false);
-            if (r is not null) lock (results) results.Add(r);
-        });
+        if (Backend.IsRemote)
+            await RunRemoteBulkAsync($"{to.Label()}로 동기화", targets,
+                async (pairs, prog, ct) => results.AddRange(await Backend.SyncManyAsync(pairs, from, prog, ct)));
+        else
+            await RunBulkAsync($"{to.Label()}로 동기화", targets, async p =>
+            {
+                var r = await p.SyncAsync(from, interactive: false);
+                if (r is not null) lock (results) results.Add(r);
+            });
 
         var created = results.Count(r => r.CreatedRepo);
         var pushed = results.Sum(r => r.Pushed);
@@ -257,10 +303,40 @@ public sealed class MainViewModel : ObservableObject
         _bulkCts = new CancellationTokenSource();
         try
         {
-            await RunBatchAsync(items, Math.Clamp(Settings.MaxParallel, 1, 8), label, work, _bulkCts.Token);
+            await RunBatchAsync(items, Backend?.MaxParallel ?? 3, label, work, _bulkCts.Token);
         }
         finally
         {
+            _bulkCts.Dispose();
+            _bulkCts = null;
+            IsBusy = false;
+            HasProgress = false;
+            BusyMessage = "준비됨";
+            UpdateStats();
+        }
+    }
+
+    /// <summary>Bulk work done as one server job; per-repo views are refreshed afterwards.</summary>
+    private async Task RunRemoteBulkAsync(string label, IReadOnlyList<RepoPairViewModel> items,
+        Func<IReadOnlyList<RepoPair>, IProgress<(string Message, double Percent)>, CancellationToken, Task> work)
+    {
+        IsBusy = true;
+        HasProgress = true;
+        Progress = 0;
+        BusyMessage = $"{label} (서버)";
+        _bulkCts = new CancellationTokenSource();
+        foreach (var i in items) i.SetWorking(true, "서버에서 처리 중…");
+        try
+        {
+            await work(items.Select(i => i.Model).ToList(),
+                new Progress<(string Message, double Percent)>(p => { BusyMessage = $"서버 · {p.Message}"; Progress = p.Percent; }),
+                _bulkCts.Token);
+        }
+        catch (OperationCanceledException) { ShowToast("작업이 취소되었습니다.", "Warning"); }
+        catch (Exception ex) { Logger.Error(ex.Message, "bulk", (ex as SyncException)?.Detail); ShowToast(ex.Message, "Error"); }
+        finally
+        {
+            foreach (var i in items) { i.SetWorking(false, ""); i.Refresh(); }
             _bulkCts.Dispose();
             _bulkCts = null;
             IsBusy = false;
@@ -304,7 +380,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Sample data for UI preview (--demo). Nothing is contacted.</summary>
     public void LoadDemo()
     {
-        ApplySettings(Settings.ToOptions(), refresh: false);
+        ApplySettings(refresh: false);
         GitHubUser = "demo-user";
         GitLabUser = "demo-user";
         var now = DateTimeOffset.Now;

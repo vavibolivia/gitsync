@@ -41,6 +41,95 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,28,24">
             <StackPanel MaxWidth="1000" HorizontalAlignment="Stretch">
 
+                <!-- Connection mode -->
+                <Border Style="{StaticResource Card}" Padding="24,20" Margin="0,0,0,16">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource BrandGradient}">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE968;" FontSize="16" HorizontalAlignment="Center" Foreground="White"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="실행 위치" Style="{StaticResource H3}" FontSize="15"/>
+                                <TextBlock Text="동기화(git fetch/push)를 이 PC에서 할지, GitSync 서버에서 할지 선택합니다" Style="{StaticResource Dim}" FontSize="12"/>
+                            </StackPanel>
+                            <Border Grid.Column="2" Background="{StaticResource InputBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                    CornerRadius="9" Padding="2" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="Mode"
+                                                 IsChecked="{Binding Mode, Converter={StaticResource EqToBool}, ConverterParameter=Local}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE7F4;" FontSize="13"/>
+                                            <TextBlock Text="이 PC에서 실행" Margin="7,0,0,0"/>
+                                        </StackPanel>
+                                    </RadioButton>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="Mode"
+                                                 IsChecked="{Binding Mode, Converter={StaticResource EqToBool}, ConverterParameter=Server}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE968;" FontSize="13"/>
+                                            <TextBlock Text="GitSync 서버에 연결" Margin="7,0,0,0"/>
+                                        </StackPanel>
+                                    </RadioButton>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- server connection fields -->
+                        <StackPanel Visibility="{Binding IsServerMode, Converter={StaticResource BoolToVis}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="서버 주소" Style="{StaticResource FieldLabel}"/>
+                                    <TextBox Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Tag="http://서버주소:8080"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="접근 키" Style="{StaticResource FieldLabel}"/>
+                                    <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding ServerKey, Mode=TwoWay}"/>
+                                </StackPanel>
+                                <Button Grid.Column="3" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Height="36" VerticalAlignment="Bottom"
+                                        Command="{Binding TestServerCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE701;"/>
+                                        <TextBlock Text="서버 연결 · 설정 불러오기" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding ServerTestResult, Converter={StaticResource NullToVis}}">
+                                <TextBlock FontSize="12">
+                                    <TextBlock.Resources>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+                                            <Setter Property="Text" Value="&#xE946;"/>
+                                            <Setter Property="Foreground" Value="{StaticResource TextDimBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ServerTestOk}" Value="True">
+                                                    <Setter Property="Text" Value="&#xE73E;"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ServerTestOk}" Value="False">
+                                                    <Setter Property="Text" Value="&#xEA39;"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Resources>
+                                </TextBlock>
+                                <TextBlock Text="{Binding ServerTestResult}" Style="{StaticResource TestResult}" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Hint}"
+                                       Text="deploy.sh 로 배포한 서버 주소와, 배포 시 출력된 접근 키를 입력하세요. 아래 GitHub · GitLab · 동기화 설정은 서버에 저장되고, 검색·비교·푸시는 모두 서버에서 실행됩니다."/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- GitHub -->
                 <Border Style="{StaticResource Card}" Padding="24,20" Margin="0,0,0,16">
                     <StackPanel>
@@ -70,13 +159,16 @@
                                 <TextBlock Style="{StaticResource Hint}" Text="조직 이름을 넣으면 해당 조직의 모든 저장소를 검색합니다."/>
                             </StackPanel>
                         </Grid>
-                        <TextBlock Text="Personal Access Token" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,6">
+                            <TextBlock Text="Personal Access Token" Style="{StaticResource FieldLabel}" Margin="0"/>
+                            <TextBlock Text="{Binding GitHubTokenState}" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding GitHubToken, Mode=TwoWay}"/>
+                            <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding GitHubToken, Mode=TwoWay}" ToolTip="{Binding TokenHint}"/>
                             <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Height="36" Command="{Binding TestGitHubCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE701;"/>
@@ -154,13 +246,16 @@
                                 <TextBlock Style="{StaticResource Hint}" Text="source = GitHub 저장소와 동일하게"/>
                             </StackPanel>
                         </Grid>
-                        <TextBlock Text="Personal Access Token" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,6">
+                            <TextBlock Text="Personal Access Token" Style="{StaticResource FieldLabel}" Margin="0"/>
+                            <TextBlock Text="{Binding GitLabTokenState}" Style="{StaticResource Hint}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding GitLabToken, Mode=TwoWay}"/>
+                            <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding GitLabToken, Mode=TwoWay}" ToolTip="{Binding TokenHint}"/>
                             <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Height="36" Command="{Binding TestGitLabCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource Icon}" Text="&#xE701;"/>
@@ -233,7 +328,12 @@
                                 <ColumnDefinition Width="20"/>
                                 <ColumnDefinition Width="200"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel>
+                            <StackPanel Visibility="{Binding IsServerMode, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="자동 동기화 주기 (분)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding AutoSyncMinutes, UpdateSourceTrigger=LostFocus}" Width="160" HorizontalAlignment="Left" HorizontalContentAlignment="Center"/>
+                                <TextBlock Style="{StaticResource Hint}" Text="0 = 끔. 설정하면 서버가 주기마다 전체 검색 후 GitHub → GitLab 동기화를 실행합니다."/>
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsLocalMode, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="로컬 캐시 폴더" Style="{StaticResource FieldLabel}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>

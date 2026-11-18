@@ -104,7 +104,7 @@ api.MapPost("/test/{provider}", async (SyncHost h, string provider, SettingsInpu
 
 // ───────────────────────── repositories ─────────────────────────
 
-api.MapGet("/repos", (SyncHost h) => h.Pairs.Select(PairSummary));
+api.MapGet("/repos", (SyncHost h, bool? full) => full == true ? h.Pairs.Select(PairDetail) : h.Pairs.Select(PairSummary));
 
 api.MapGet("/repo", (SyncHost h, string id) =>
     h.Find(id) is { } p ? Results.Ok(PairDetail(p)) : Results.NotFound(new { error = "저장소를 찾을 수 없습니다." }));

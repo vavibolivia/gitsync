@@ -159,7 +159,7 @@
     $$(".detail [data-act]").forEach((b) => (b.disabled = running || b.dataset.disabled === "1"));
     $("#metaText").textContent = (s.lastScan ? `마지막 스캔 ${fmtTime(s.lastScan)}` : "아직 스캔하지 않음") + `  ·  ${s.counts.total}개 저장소`;
 
-    if (!s.configured && state.page === "repos" && !state.repos.length) renderDetail();
+    if (!state.detail) renderDetail();   // empty state depends on `configured`
   }
 
   function renderList() {
@@ -453,7 +453,10 @@
     if (s < 86400 * 30) return `${Math.floor(s / 86400)}일 전`;
     return new Date(iso).toLocaleDateString("ko-KR");
   }
-  const fmtTime = (iso) => new Date(iso).toLocaleTimeString("ko-KR", { hour12: false });
+  const fmtTime = (iso) => {
+    const d = new Date(iso), p = (n) => String(n).padStart(2, "0");
+    return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  };
 
   function go(page) {
     state.page = page;

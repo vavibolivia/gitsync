@@ -87,6 +87,29 @@
 
                 <!-- Connections -->
                 <StackPanel Grid.Row="3">
+                    <TextBlock Text="실행 위치" Style="{StaticResource Caption}" Margin="8,0,0,8"/>
+                    <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            CornerRadius="12" Padding="12,9" Margin="0,0,0,14" Cursor="Hand" ToolTip="설정에서 변경">
+                        <Border.InputBindings>
+                            <MouseBinding MouseAction="LeftClick" Command="{Binding NavigateCommand}" CommandParameter="Settings"/>
+                        </Border.InputBindings>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontSize="15" Foreground="{StaticResource AccentHoverBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+                                        <Setter Property="Text" Value="&#xE7F4;"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsServerMode}" Value="True">
+                                                <Setter Property="Text" Value="&#xE968;"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="{Binding ExecutionLocation}" Margin="10,0,0,0" FontWeight="SemiBold" FontSize="12.5"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                        </StackPanel>
+                    </Border>
                     <TextBlock Text="연결" Style="{StaticResource Caption}" Margin="8,0,0,8"/>
                     <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                             CornerRadius="12" Padding="12,10" Margin="0,0,0,8">

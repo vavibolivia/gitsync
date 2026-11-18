@@ -86,7 +86,9 @@ public sealed class RepoPairViewModel : ObservableObject
     private string _workMessage = "";
     public string WorkMessage { get => _workMessage; private set => Set(ref _workMessage, value); }
 
-    private SyncService Svc => _shell.Service ?? throw new SyncException("서비스가 초기화되지 않았습니다.");
+    private ISyncBackend Svc => _shell.Backend ?? throw new SyncException("설정이 완료되지 않았습니다.");
+
+    public void SetWorking(bool working, string message) { IsWorking = working; WorkMessage = message; }
 
     // ───────────────────────── operations ─────────────────────────
 
@@ -126,7 +128,7 @@ public sealed class RepoPairViewModel : ObservableObject
                 var details = new List<string>();
                 if (Model.Get(to) is null)
                 {
-                    if (!_shell.Settings.CreateMissingRepos)
+                    if (!Svc.CreateMissingRepos)
                     {
                         _shell.ShowToast($"{to.Label()}에 저장소가 없고, 설정에서 자동 생성이 꺼져 있습니다.", "Warning");
                         return null;
@@ -136,7 +138,7 @@ public sealed class RepoPairViewModel : ObservableObject
                         : $"{(_shell.Settings.GitHubOwner is { Length: > 0 } o ? o : _shell.GitHubUser)}/{Model.Get(from)!.Name}";
                     details.Add($"새 저장소: {target}");
                     if (to == Provider.GitLab) details.Add($"공개 범위: {_shell.Settings.GitLabVisibility}");
-                    details.Add("모든 브랜치" + (_shell.Settings.SyncTags ? "와 태그" : "") + " 복사");
+                    details.Add("모든 브랜치" + (Svc.SyncTags ? "와 태그" : "") + " 복사");
                     if (!Dialogs.Confirm($"{to.Label()}에 저장소 생성", $"'{Name}' 저장소를 {to.Label()}에 만들고 내용을 복사합니다.",
                             "생성 후 동기화", false, details))
                         return null;
@@ -147,7 +149,7 @@ public sealed class RepoPairViewModel : ObservableObject
                     Refresh();
                     var plan = SyncService.BuildPlan(Model, from);
                     var missingTags = (from == Provider.GitHub ? Model.Tags?.GitHubOnly : Model.Tags?.GitLabOnly) ?? 0;
-                    if (!plan.Pushes.Any() && (!_shell.Settings.SyncTags || missingTags == 0))
+                    if (!plan.Pushes.Any() && (!Svc.SyncTags || missingTags == 0))
                     {
                         _shell.ShowToast(plan.Skipped.Any()
                             ? $"자동으로 푸시할 브랜치가 없습니다. 분기된 브랜치 {plan.Skipped.Count()}개는 개별 강제 푸시가 필요합니다."
@@ -156,7 +158,7 @@ public sealed class RepoPairViewModel : ObservableObject
                     }
                     foreach (var a in plan.Pushes)
                         details.Add(a.Kind == BranchActionKind.Create ? $"＋ {a.Branch}  (새 브랜치)" : $"↑ {a.Branch}  (+{a.Commits} 커밋)");
-                    if (_shell.Settings.SyncTags && missingTags > 0) details.Add($"＋ 태그 {missingTags}개");
+                    if (Svc.SyncTags && missingTags > 0) details.Add($"＋ 태그 {missingTags}개");
                     foreach (var s in plan.Skipped) details.Add($"⨯ {s.Branch}  건너뜀 — {s.Reason}");
                     if (!Dialogs.Confirm($"{from.Label()} → {to.Label()} 동기화", $"'{Name}'의 다음 변경 사항을 {to.Label()}로 푸시합니다.",
                             "푸시", false, details))

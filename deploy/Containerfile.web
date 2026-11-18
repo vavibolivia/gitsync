@@ -1,0 +1,5 @@
+# GitSync web frontend (nginx) — build with: podman build -f deploy/Containerfile.web -t gitsync-web .
+FROM docker.io/library/nginx:1.27-alpine
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY web/ /usr/share/nginx/html/
+EXPOSE 80

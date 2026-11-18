@@ -1,0 +1,19 @@
+# GitSync API (sync engine) — build with: podman build -f deploy/Containerfile.api -t gitsync-api .
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY src/GitSync.Core/ src/GitSync.Core/
+COPY src/GitSync.Server/ src/GitSync.Server/
+RUN dotnet publish src/GitSync.Server/GitSync.Server.csproj -c Release -o /out /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /out .
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080 \
+    GITSYNC_DATA=/data \
+    DOTNET_gcServer=0
+VOLUME ["/data"]
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "GitSync.Server.dll"]

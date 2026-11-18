@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GitSync</AssemblyName>
+    <RootNamespace>GitSync.Desktop</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>GitSync</Product>
+    <Description>GitHub ⇄ GitLab repository comparer and synchronizer</Description>
+    <ApplicationIcon>Assets\GitSync.ico</ApplicationIcon>
+    <Company>GitSync</Company>
+    <Copyright>Copyright © 2026 GitSync contributors</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GitSync.Core\GitSync.Core.csproj" />
+    <Resource Include="Assets\GitSync.ico" />
+  </ItemGroup>
+
+</Project>

@@ -151,10 +151,13 @@
                                 <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding AddPairCommand}" Content="쌍 추가"/>
+                            <Button Style="{StaticResource PrimaryButton}" Command="{Binding AddPairCommand}" Content="쌍 추가"
+                                    ToolTip="GitHub 저장소나 GitLab 프로젝트를 하나 이상 고른 뒤 누르세요."/>
                             <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Command="{Binding RemovePairCommand}" Content="선택한 쌍 제거"
                                     ToolTip="목록에서만 뺍니다. GitHub·GitLab의 저장소는 삭제하지 않습니다."/>
                         </Grid>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="GitHub 저장소나 GitLab 프로젝트를 하나 이상 고르면 '쌍 추가'가 켜집니다. 한쪽을 '(같은 이름으로 새로 생성)'으로 두면 동기화할 때 그 이름으로 만들어집니다."/>
                     </StackPanel>
                     <Grid Grid.Row="1" Margin="12,12,12,8">
                         <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Tag="저장소 검색…" Padding="34,0,10,0"/>

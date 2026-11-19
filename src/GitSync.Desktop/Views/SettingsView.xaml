@@ -1,7 +1,8 @@
 <UserControl x:Class="GitSync.Desktop.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:inf="clr-namespace:GitSync.Desktop.Infrastructure">
+             xmlns:inf="clr-namespace:GitSync.Desktop.Infrastructure"
+             xmlns:v="clr-namespace:GitSync.Desktop.Views">
     <UserControl.Resources>
         <Style x:Key="TestResult" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12"/>
@@ -60,7 +61,7 @@
                                     <TextBlock Text="키" Style="{StaticResource FieldLabel}"/>
                                     <TextBlock Text="{Binding GitHubTokenState}" Style="{StaticResource Hint}" Margin="10,0,0,0"/>
                                 </StackPanel>
-                                <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding GitHubToken, Mode=TwoWay}" ToolTip="{Binding TokenHint}"/>
+                                <v:SecretBox Secret="{Binding GitHubToken, Mode=TwoWay}" ToolTip="{Binding TokenHint}"/>
                             </StackPanel>
                             <Button Grid.Column="5" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Height="36" VerticalAlignment="Bottom"
                                     Command="{Binding TestGitHubCommand}" Content="연결 테스트"/>
@@ -107,7 +108,7 @@
                                     <TextBlock Text="키" Style="{StaticResource FieldLabel}"/>
                                     <TextBlock Text="{Binding GitLabTokenState}" Style="{StaticResource Hint}" Margin="10,0,0,0"/>
                                 </StackPanel>
-                                <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding GitLabToken, Mode=TwoWay}" ToolTip="{Binding TokenHint}"/>
+                                <v:SecretBox Secret="{Binding GitLabToken, Mode=TwoWay}" ToolTip="{Binding TokenHint}"/>
                             </StackPanel>
                             <Button Grid.Column="5" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Height="36" VerticalAlignment="Bottom"
                                     Command="{Binding TestGitLabCommand}" Content="연결 테스트"/>
@@ -201,7 +202,7 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
                                         <TextBlock Text="접근 키" Style="{StaticResource FieldLabel}"/>
-                                        <PasswordBox inf:PasswordBoxAssist.BoundPassword="{Binding ServerKey, Mode=TwoWay}"/>
+                                        <v:SecretBox Secret="{Binding ServerKey, Mode=TwoWay}"/>
                                     </StackPanel>
                                     <Button Grid.Column="3" Style="{StaticResource SecondaryButton}" Margin="10,0,0,0" Height="36" VerticalAlignment="Bottom"
                                             Command="{Binding TestServerCommand}" Content="서버 연결 · 설정 불러오기"/>

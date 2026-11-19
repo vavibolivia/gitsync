@@ -187,7 +187,13 @@ public sealed class SyncService : ISyncBackend
         {
             var t1 = RequireGitHub().GetBranchesAsync(pair.GitHub!.FullName, ct);
             var t2 = RequireGitLab().GetBranchesAsync(pair.GitLab!.Id, ct);
-            await Task.WhenAll(t1, t2);
+            // Versions are tags: a release that only adds a tag must show up as a difference too.
+            var g1 = RequireGitHub().GetTagsAsync(pair.GitHub!.FullName, ct);
+            var g2 = RequireGitLab().GetTagsAsync(pair.GitLab!.Id, ct);
+            await Task.WhenAll(t1, t2, g1, g2);
+            pair.Tags = SummarizeTags(
+                g1.Result.ToDictionary(t => t.Name, t => t.Sha, StringComparer.Ordinal),
+                g2.Result.ToDictionary(t => t.Name, t => t.Sha, StringComparer.Ordinal));
 
             var gh = t1.Result.ToDictionary(b => b.Name, b => b.Sha, StringComparer.Ordinal);
             var gl = t2.Result.ToDictionary(b => b.Name, b => b.Sha, StringComparer.Ordinal);
@@ -383,6 +389,10 @@ public sealed class SyncService : ISyncBackend
                     if (!r.Ok) Log.Warn("일부 태그 푸시 실패", scope, (r.StdErr + "\n" + r.StdOut).Trim());
                 }
                 if (tagsToPush.Count > 0) Log.Info($"태그 {tagsToPush.Count}개 푸시", scope);
+                var differing = await DifferingTagsAsync(dir, ct);
+                if (differing.Count > 0)
+                    Log.Warn($"태그 {differing.Count}개가 양쪽에서 서로 다른 커밋을 가리켜 덮어쓰지 않았습니다: " +
+                             string.Join(", ", differing.Take(10)) + (differing.Count > 10 ? " …" : ""), scope);
             }
 
             if (created && source.DefaultBranch is { Length: > 0 } def && pushes.Contains(def))
@@ -429,6 +439,29 @@ public sealed class SyncService : ISyncBackend
     /// <summary>True when pushing this branch from <paramref name="from"/> would discard commits on the target.</summary>
     public static bool RequiresForce(BranchState b, Provider from) =>
         b.Sha(from.Other()) is not null && b.Ahead(from.Other()) > 0;
+
+    private static TagSummary SummarizeTags(IReadOnlyDictionary<string, string> gh, IReadOnlyDictionary<string, string> gl)
+    {
+        int same = 0, onlyGh = 0, onlyGl = 0, diff = 0;
+        foreach (var t in gh.Keys.Union(gl.Keys))
+        {
+            var inGh = gh.TryGetValue(t, out var x);
+            var inGl = gl.TryGetValue(t, out var y);
+            if (inGh && inGl) { if (x == y) same++; else diff++; }
+            else if (inGh) onlyGh++;
+            else onlyGl++;
+        }
+        return new TagSummary(same, onlyGh, onlyGl, diff);
+    }
+
+    /// <summary>Tags that exist on both sides but point at different objects. They are never overwritten.</summary>
+    private async Task<List<string>> DifferingTagsAsync(string dir, CancellationToken ct)
+    {
+        var a = await _git.ReadTagsAsync(dir, Provider.GitHub, ct);
+        var b = await _git.ReadTagsAsync(dir, Provider.GitLab, ct);
+        return a.Where(t => b.TryGetValue(t.Key, out var other) && other != t.Value).Select(t => t.Key)
+            .OrderBy(t => t, StringComparer.Ordinal).ToList();
+    }
 
     private async Task<List<string>> MissingTagsAsync(string dir, Provider from, CancellationToken ct)
     {

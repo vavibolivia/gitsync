@@ -159,6 +159,26 @@ public sealed class GitHubClient : ApiClientBase
         return list;
     }
 
+    /// <summary>Tag name → commit SHA (the commit the tag points at, also for annotated tags).</summary>
+    public async Task<List<RemoteBranch>> GetTagsAsync(string fullName, CancellationToken ct = default)
+    {
+        var list = new List<RemoteBranch>();
+        for (int page = 1; ; page++)
+        {
+            using var doc = await SendAsync(HttpMethod.Get, $"repos/{fullName}/tags?per_page=100&page={page}", null, ct, allowNotFound: true);
+            if (doc is null) break;
+            int count = 0;
+            foreach (var e in doc.RootElement.EnumerateArray())
+            {
+                count++;
+                var sha = e.TryGetProperty("commit", out var c) ? Str(c, "sha") : null;
+                list.Add(new RemoteBranch(Str(e, "name") ?? "", sha ?? ""));
+            }
+            if (count < 100) break;
+        }
+        return list;
+    }
+
     public async Task<RemoteRepo> CreateRepoAsync(string name, string? owner, bool isPrivate, string? description, CancellationToken ct = default)
     {
         var login = await GetLoginAsync(ct);
@@ -233,6 +253,26 @@ public sealed class GitLabClient : ApiClientBase
         for (int page = 1; ; page++)
         {
             using var doc = await SendAsync(HttpMethod.Get, $"projects/{projectId}/repository/branches?per_page=100&page={page}", null, ct, allowNotFound: true);
+            if (doc is null) break;
+            int count = 0;
+            foreach (var e in doc.RootElement.EnumerateArray())
+            {
+                count++;
+                var sha = e.TryGetProperty("commit", out var c) ? Str(c, "id") : null;
+                list.Add(new RemoteBranch(Str(e, "name") ?? "", sha ?? ""));
+            }
+            if (count < 100) break;
+        }
+        return list;
+    }
+
+    /// <summary>Tag name → commit SHA (the commit the tag points at, also for annotated tags).</summary>
+    public async Task<List<RemoteBranch>> GetTagsAsync(long projectId, CancellationToken ct = default)
+    {
+        var list = new List<RemoteBranch>();
+        for (int page = 1; ; page++)
+        {
+            using var doc = await SendAsync(HttpMethod.Get, $"projects/{projectId}/repository/tags?per_page=100&page={page}", null, ct, allowNotFound: true);
             if (doc is null) break;
             int count = 0;
             foreach (var e in doc.RootElement.EnumerateArray())

@@ -25,7 +25,7 @@ var app = builder.Build();
 if (accessKey.Length == 0)
     app.Logger.LogWarning("GITSYNC_ACCESS_KEY is not set: the API is open to anyone who can reach it.");
 
-// Optional: serve the web UI directly (development without nginx).
+// Optional: serve the web UI directly from GITSYNC_WEB_ROOT.
 if (Environment.GetEnvironmentVariable("GITSYNC_WEB_ROOT") is { Length: > 0 } webRoot)
 {
     // A relative path resolves against the working directory, which `dotnet run --project` sets to the project folder.

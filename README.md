@@ -6,7 +6,6 @@
 
 <p align="center">
   <a href="../../releases/latest"><b>⬇ GitSync.exe 다운로드 (Windows)</b></a> ·
-  <a href="#서버-배포-podman--nginx">서버 배포</a> ·
   <a href="#동작-방식">동작 방식</a>
 </p>
 
@@ -16,13 +15,14 @@
 
 - **저장소 쌍 직접 추가 (데스크톱)** — 주소 · ID · 키를 저장한 뒤, 목록에서 GitHub 저장소와 GitLab 프로젝트를 골라 쌍을 만듭니다. 추가한 쌍만 비교·동기화합니다. 한쪽을 "(같은 이름으로 새로 생성)"으로 두면 동기화할 때 만들어집니다.
 - **전체 자동 검색 (서버 모드)** — 키로 접근 가능한 모든 GitHub 저장소와 GitLab 프로젝트를 찾아 이름으로 짝을 맞춥니다. (조직/그룹 필터, 이름 매핑 지원)
+- **버전(태그) 동기화** — 버전 태그는 커밋과 함께 그대로 GitLab에 올라갑니다(주석 태그 객체까지 동일). 브랜치는 그대로이고 태그만 새로 생긴 릴리스도 차이로 표시합니다. 양쪽에서 같은 이름의 태그가 서로 다른 커밋을 가리키면 덮어쓰지 않고 경고합니다.
 - **브랜치 단위 비교** — 브랜치마다 `동일 / GitHub 앞섬 / GitLab 앞섬 / 분기됨 / 한쪽에만 있음` 상태와 앞선 커밋 수, 마지막 커밋 작성자·시간을 보여줍니다. 태그도 비교합니다.
 - **GitLab으로 푸시** — 없는 프로젝트는 자동 생성하고, 없는 브랜치는 만들고, 뒤처진 브랜치는 fast-forward로 업데이트합니다. 누락된 태그도 함께 푸시합니다.
 - **안전한 기본값** — 분기된 브랜치는 절대 자동으로 덮어쓰지 않습니다. 브랜치별 버튼으로 확인 창을 거쳐야만 강제 푸시합니다.
 - **역방향(GitLab → GitHub)** 동기화도 지원합니다.
 - **두 가지 실행 방식**
   - **Windows 데스크톱 앱** (WPF, 단일 exe, .NET 설치 불필요)
-  - **서버 모드** — podman 컨테이너(API) + nginx(웹 UI). 주기적 자동 동기화를 설정할 수 있습니다.
+  - **서버 모드** — API 서버(`src/GitSync.Server`) + 웹 UI(`web/`). 주기적 자동 동기화를 설정할 수 있습니다. 컨테이너 이미지·배포 스크립트는 이 저장소에 포함하지 않습니다.
     서버는 **WPF 앱(설정 → 실행 위치 → GitSync 서버에 연결)** 또는 브라우저로 제어합니다.
 - **자동 업데이트 (데스크톱)** — 시작할 때와 3시간마다 이 저장소의 최신 릴리스를 확인해, 새 버전이 있으면 `GitSync.exe`를 받아 크기·SHA-256을 검증한 뒤 스스로 교체하고 다시 시작합니다. 작업 중이거나 저장하지 않은 설정이 있으면 끝날 때까지 기다립니다. 설정·키·저장소 쌍은 `%APPDATA%GitSyncsettings.json`에 따로 있어 그대로 유지되며, 교체 직전에 `settings.json.bak` 백업을 만듭니다. 설정 → 고급 설정 표시 → **자동 업데이트**로 끌 수 있습니다.
 - **토큰 보호** — 데스크톱은 Windows DPAPI로 암호화 저장, git 명령에는 환경변수로만 전달되어 명령줄이나 git 설정에 남지 않습니다.
@@ -44,41 +44,15 @@
 | GitHub (fine-grained) | Contents: Read/Write, Metadata: Read, (GitHub에 저장소를 만들 때) Administration: Write |
 | GitLab | `api`, `write_repository` — 그룹에 생성하려면 해당 그룹 Developer 이상 |
 
-## 서버 배포 (podman + nginx)
+## 서버 실행 (선택)
 
-```
- 브라우저 ──▶ nginx (NAME-web, :80) ──/api──▶ GitSync API (NAME-api, :8080) ──▶ git / GitHub / GitLab
-                └────────────── podman pod: NAME-pod ──────────────┘
-```
-
-서버(Linux, podman 설치)에서:
+이 저장소는 컨테이너 이미지나 배포 스크립트를 제공하지 않습니다. 서버가 필요하면 소스에서 직접 실행합니다.
 
 ```bash
-git clone <이 저장소> gitsync && cd gitsync
-./deploy/deploy.sh -n gitsync -t 1.0.0 -p 8080
+GITSYNC_ACCESS_KEY=원하는키 GITSYNC_WEB_ROOT="$PWD/web" dotnet run --project src/GitSync.Server
 ```
 
-Windows에서 원격 서버로 바로 배포 (소스를 복사한 뒤 **그 서버에서** 빌드·실행):
-
-```powershell
-.\deploy\deploy.ps1 -Server user@10.0.0.5 -Name gitsync -Tag 1.0.0 -Port 8080
-# 또는 Linux/macOS:  ./deploy/deploy.sh -H user@10.0.0.5 -n gitsync -t 1.0.0
-```
-
-| 옵션 | 설명 | 기본값 |
-|---|---|---|
-| `-n NAME` | 이미지/pod 이름. `NAME-api`, `NAME-web` 이미지와 `NAME-pod`가 만들어집니다 | `gitsync` |
-| `-t TAG` | 이미지 태그 | `latest` |
-| `-p PORT` | 웹 UI 포트 | `8080` |
-| `-d DIR` | 데이터(설정·캐시) 디렉터리 | `~/.local/share/NAME` |
-| `-k KEY` | 웹/API 접근 키 (없으면 생성해서 `DIR/access-key`에 저장) | 자동 |
-| `-H HOST` | 원격 서버(ssh)로 복사 후 그곳에서 빌드·실행 | — |
-
-**같은 이름의 기존 이미지가 podman에 있으면 (태그와 관계없이) 그 이미지와 이를 사용하는 컨테이너·pod를 먼저 삭제한 뒤** 새로 빌드합니다.
-
-배포가 끝나면 WPF 앱의 **설정 → 실행 위치 → GitSync 서버에 연결**에 서버 주소와 접근 키를 넣거나, 브라우저로 `http://서버:8080`에 접속해 접근 키를 입력하고, 설정 화면에서 토큰을 저장하면 됩니다. 토큰은 환경변수(`GITSYNC_GITHUB_TOKEN`, `GITSYNC_GITLAB_TOKEN`, `GITSYNC_GITLAB_URL` …)로도 줄 수 있습니다.
-
-![GitSync web](docs/web-settings.png)
+실행한 뒤 WPF 앱의 **설정 → 고급 설정 표시 → 실행 위치 → GitSync 서버에 연결**에 서버 주소와 접근 키를 넣거나, 브라우저로 접속합니다.
 
 ### 서버 API
 
@@ -111,7 +85,7 @@ Windows에서 원격 서버로 바로 배포 (소스를 복사한 뒤 **그 서�
 ```bash
 dotnet build GitSync.sln
 dotnet run --project src/GitSync.Desktop                     # 데스크톱
-GITSYNC_WEB_ROOT="$PWD/web" dotnet run --project src/GitSync.Server # 서버 + 웹 UI (nginx 없이, 절대 경로 필요)
+GITSYNC_WEB_ROOT="$PWD/web" dotnet run --project src/GitSync.Server # 서버 + 웹 UI (절대 경로 필요)
 
 # 단일 exe
 dotnet publish src/GitSync.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
@@ -122,8 +96,7 @@ dotnet publish src/GitSync.Desktop -c Release -r win-x64 --self-contained -p:Pub
 | `src/GitSync.Core` | 비교·동기화 엔진 (GitHub/GitLab API, git CLI) |
 | `src/GitSync.Desktop` | WPF 데스크톱 앱 |
 | `src/GitSync.Server` | ASP.NET Core API 서버 |
-| `web/` | 웹 프론트엔드 (nginx 정적 파일) |
-| `deploy/` | Containerfile, nginx.conf, podman 배포 스크립트 |
+| `web/` | 웹 프론트엔드 (정적 파일) |
 
 요구 사항: .NET 10 SDK, git 2.31+
 

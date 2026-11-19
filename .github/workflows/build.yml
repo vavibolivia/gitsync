@@ -40,36 +40,3 @@ jobs:
             publish/GitSync.exe
             publish/GitSync-win-x64.zip
 
-  # Real podman + nginx deployment test using deploy/deploy.sh
-  deploy-e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy (first time)
-        run: bash deploy/deploy.sh -n gitsync-ci -t ci1 -p 18080 -d /tmp/gsdata -k cikey
-      - name: Verify web UI, API and nginx
-        run: |
-          set -eux
-          curl -fsS http://127.0.0.1:18080/ | grep -q '<title>GitSync</title>'
-          curl -fsS http://127.0.0.1:18080/app.js | grep -q 'GitSync web UI'
-          curl -fsS http://127.0.0.1:18080/api/health | grep -q '"ok":true'
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/status)" = 401
-          curl -fsS -H 'X-Access-Key: cikey' http://127.0.0.1:18080/api/status | grep -q '"configured":false'
-          curl -fsS -X PUT -H 'X-Access-Key: cikey' -H 'Content-Type: application/json' \
-               -d '{"maxParallel":2}' http://127.0.0.1:18080/api/settings | grep -q '"maxParallel":2'
-          test -f /tmp/gsdata/settings.json
-          test "$(cat /tmp/gsdata/access-key)" = cikey
-          podman exec gitsync-ci-web nginx -t
-          podman exec gitsync-ci-api git --version
-          curl -sI http://127.0.0.1:18080/ | grep -qi 'x-frame-options: deny'
-      - name: Redeploy with a new tag (old image must be removed)
-        run: |
-          set -eux
-          bash deploy/deploy.sh -n gitsync-ci -t ci2 -p 18080 -d /tmp/gsdata
-          test "$(podman images --filter reference=localhost/gitsync-ci-api --format '{{.Tag}}')" = ci2
-          test "$(podman images --filter reference=localhost/gitsync-ci-web --format '{{.Tag}}')" = ci2
-          test "$(podman pod ps --filter name=gitsync-ci-pod --format '{{.Name}}' | wc -l)" = 1
-          curl -fsS -H 'X-Access-Key: cikey' http://127.0.0.1:18080/api/settings | grep -q '"maxParallel":2'   # data kept
-      - name: Container logs
-        if: always()
-        run: podman logs gitsync-ci-api || true

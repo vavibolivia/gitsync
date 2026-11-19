@@ -218,7 +218,7 @@
                                     </TextBlock.Style>
                                 </TextBlock>
                                 <TextBlock Style="{StaticResource Hint}" TextWrapping="Wrap"
-                                           Text="deploy.sh 로 배포한 서버 주소와, 배포 시 출력된 접근 키를 입력하세요. 서버 모드에서는 GitHub · GitLab · 동기화 설정이 서버에 저장되고, 서버가 모든 저장소를 자동으로 검색합니다(저장소 직접 추가는 이 PC에서 실행할 때만 가능)."/>
+                                           Text="실행 중인 GitSync 서버의 주소와 접근 키(GITSYNC_ACCESS_KEY)를 입력하세요. 서버 모드에서는 GitHub · GitLab · 동기화 설정이 서버에 저장되고, 서버가 모든 저장소를 자동으로 검색합니다(저장소 직접 추가는 이 PC에서 실행할 때만 가능)."/>
                             </StackPanel>
                         </StackPanel>
                     </Border>

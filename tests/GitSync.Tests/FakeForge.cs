@@ -183,6 +183,20 @@ public sealed class FakeForge : IAsyncDisposable
         return list;
     }
 
+    /// <summary>Tag name and the commit it points at (annotated tags are peeled), like the real tag APIs.</summary>
+    private static async Task<List<object>> TagsAsync(string bare, Func<string, string, object> map)
+    {
+        var list = new List<object>();
+        if (!Directory.Exists(bare)) return list;
+        var outp = await Git(bare, "for-each-ref", "--format=%(refname:strip=2)|%(objectname)|%(*objectname)", "refs/tags/");
+        foreach (var line in outp.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var f = line.Trim().Split('|');
+            list.Add(map(f[0], f.Length > 2 && f[2].Length > 0 ? f[2] : f[1]));
+        }
+        return list;
+    }
+
     private void MapGitHub(WebApplication app)
     {
         var api = app.MapGroup("/gh/api");
@@ -200,6 +214,13 @@ public sealed class FakeForge : IAsyncDisposable
         {
             if (!GitHubRepos.ContainsKey($"{owner}/{repo}")) return Json(new { message = "Not Found" }, 404);
             var all = await BranchesAsync(GitHubPath($"{owner}/{repo}"), (n, s) => new { name = n, commit = new { sha = s } });
+            return Json(Page(all, ctx));
+        });
+
+        api.MapGet("/repos/{owner}/{repo}/tags", async (string owner, string repo, HttpContext ctx) =>
+        {
+            if (!GitHubRepos.ContainsKey($"{owner}/{repo}")) return Json(new { message = "Not Found" }, 404);
+            var all = await TagsAsync(GitHubPath($"{owner}/{repo}"), (n, s) => new { name = n, commit = new { sha = s } });
             return Json(Page(all, ctx));
         });
 
@@ -253,6 +274,13 @@ public sealed class FakeForge : IAsyncDisposable
             var r = GitLabRepos.Values.FirstOrDefault(x => x.Id == id);
             if (r is null) return Json(new { message = "404 Project Not Found" }, 404);
             var all = await BranchesAsync(GitLabPath(r.FullName), (n, s) => new { name = n, commit = new { id = s } });
+            return Json(Page(all, ctx));
+        });
+        api.MapGet("/projects/{id:long}/repository/tags", async (long id, HttpContext ctx) =>
+        {
+            var r = GitLabRepos.Values.FirstOrDefault(x => x.Id == id);
+            if (r is null) return Json(new { message = "404 Project Not Found" }, 404);
+            var all = await TagsAsync(GitLabPath(r.FullName), (n, s) => new { name = n, commit = new { id = s } });
             return Json(Page(all, ctx));
         });
         api.MapPost("/projects", async (HttpContext ctx) =>

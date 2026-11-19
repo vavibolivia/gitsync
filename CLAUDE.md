@@ -13,12 +13,11 @@ dotnet test tests/GitSync.Tests --filter "FullyQualifiedName~Scan_finds_all"   #
 dotnet test tests/GitSync.Tests --filter "FullyQualifiedName~ServerTests"     # one class
 
 dotnet run --project src/GitSync.Desktop                          # WPF app (Windows only)
-GITSYNC_WEB_ROOT="$PWD/web" dotnet run --project src/GitSync.Server   # API + web UI without nginx (must be an absolute path: dotnet run uses the project dir as cwd)
+GITSYNC_WEB_ROOT="$PWD/web" dotnet run --project src/GitSync.Server   # API + web UI (must be an absolute path: dotnet run uses the project dir as cwd)
 
 # single-file exe (as CI does)
 dotnet publish src/GitSync.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
 
-bash -n deploy/deploy.sh                                          # syntax check the deploy script
 ```
 
 There is no separate linter; the build is the check. `publish/` is gitignored.
@@ -34,8 +33,8 @@ There is no separate linter; the build is the check. `publish/` is gitignored.
   - **Sync safety rules** (`SyncService.BuildPlan`): missing branch → create; target behind → fast-forward; target ahead or diverged → skip (only an explicit per-branch `PushBranchAsync(force: true)` overwrites); branches only on the target are never touched. Missing target repos are created when `CreateMissingRepos` is on. Default branch is pushed first. Re-running must be a no-op.
 - **`src/GitSync.Server`** — ASP.NET Core minimal API (`Program.cs`). `SyncHost` holds state and allows **one job at a time** (concurrent requests → 409); `AutoSyncWorker` does periodic sync. Settings live in `$GITSYNC_DATA/settings.json`; `GITSYNC_*` env vars override (see `ServerSettings.cs`). Tokens are write-only through `/api/settings` (an empty value keeps the existing token). If `GITSYNC_ACCESS_KEY` is set, every endpoint except `/api/health` and static files requires an `X-Access-Key` header.
 - **`src/GitSync.Desktop`** — WPF MVVM (hand-rolled `Infrastructure/Mvvm.cs`, no framework). `Infrastructure/AutoUpdater.cs` self-updates the single-file exe from this repo's latest GitHub release (`UpdateChecker` in Core parses the release; the exe is verified by size and SHA-256, swapped by renaming the running file to `.old`, then restarted). Settings live outside the exe and must survive updates. Settings, tokens and the server access key are stored with DPAPI encryption in `SettingsStore`.
-- **`web/`** — plain static HTML/CSS/JS (no build step) served by nginx in production, talking to `/api`.
-- **`deploy/`** — `deploy.sh` / `deploy.ps1` build `NAME-api` and `NAME-web` images and run them in `NAME-pod` with podman. Before building it deletes any existing image of the same name (all tags) and the containers/pod that use it; the data dir is kept. `-H user@host` copies the source to a remote host and builds there.
+- **`web/`** — plain static HTML/CSS/JS (no build step) served by the server when `GITSYNC_WEB_ROOT` is set, talking to `/api`.
+- There is deliberately **no container image / deployment tooling** in this repository (removed at the owner's request; it is handled separately). Do not add Containerfiles or deploy scripts back.
 
 ## Tests
 
@@ -43,6 +42,6 @@ There is no separate linter; the build is the check. `publish/` is gitignored.
 - `FakeForge` is an in-process fake of the GitHub REST API, the GitLab REST API and git smart-HTTP (backed by real bare repos through `git http-backend`), so auth headers, fetch/push, pagination and repo creation are all exercised for real.
 - `ServerTests` start the **real `GitSync.Server` process** (the test project builds it but does not reference its assembly) and drive the HTTP API and `RemoteSyncClient` against it.
 
-CI (`.github/workflows/build.yml`): a Windows job builds, tests and publishes `GitSync.exe` (a release is made on `v*` tags); a `deploy-e2e` Ubuntu job runs `deploy.sh` against real podman + nginx and checks redeploy behavior.
+CI (`.github/workflows/build.yml`): a Windows job builds, tests and publishes `GitSync.exe` (a release is made on `v*` tags).
 
 `docs/QA-PLAN.md` holds the QA case list and results (Korean). Update it when you add or change test cases.

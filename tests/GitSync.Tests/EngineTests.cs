@@ -337,6 +337,76 @@ public sealed class EngineTests : IAsyncLifetime
 
     // ───────────────────────── sync ─────────────────────────
 
+    /// <summary>Release after release: every version tag (and the commits it needs) must arrive on GitLab unchanged.</summary>
+    [Fact]
+    public async Task Version_tags_are_synced_release_by_release_and_moved_tags_are_not_overwritten()
+    {
+        await _forge.AddGitHubAsync("octo/app");
+        await _forge.AddGitLabAsync("mirrors/app");
+        var gh = _forge.GitHubPath("octo/app");
+        var gl = _forge.GitLabPath("mirrors/app");
+        using var svc = new SyncService(Options(o => { o.ManualPairs = true; o.Pairs = "octo/app=mirrors/app"; }), _log);
+
+        async Task<RepoPair> SyncOnce()
+        {
+            var pair = (await svc.ScanAsync()).Single();
+            await svc.QuickCompareAsync(pair);
+            var r = await svc.SyncAsync(pair, Provider.GitHub);
+            Assert.True(r.Ok, r.Error);
+            return pair;
+        }
+
+        // v1.0.0
+        await Commit("c1");
+        await FakeForge.Git(_work, "tag", "-a", "v1.0.0", "-m", "release 1.0.0");
+        await Push(gh, "main", "v1.0.0");
+        await SyncOnce();
+
+        // v1.0.1: a tag on the SAME commit (no branch change). The quick comparison must still report a difference.
+        await FakeForge.Git(_work, "tag", "v1.0.1");
+        await Push(gh, "v1.0.1");
+        var quick = (await svc.ScanAsync()).Single();
+        await svc.QuickCompareAsync(quick);
+        Assert.Equal(new TagSummary(1, 1, 0, 0), quick.Tags);
+        Assert.Equal(RepoStatus.OutOfSync, quick.Status);
+        await SyncOnce();
+
+        // v1.1.0 and v2.0.0: new commits, two releases between syncs, plus a release branch.
+        await Commit("c2");
+        await FakeForge.Git(_work, "tag", "-a", "v1.1.0", "-m", "release 1.1.0");
+        await FakeForge.Git(_work, "checkout", "-q", "-b", "release/1.x");
+        await FakeForge.Git(_work, "checkout", "-q", "main");
+        await Commit("c3");
+        await FakeForge.Git(_work, "tag", "-a", "v2.0.0", "-m", "release 2.0.0");
+        await Push(gh, "main", "release/1.x", "v1.1.0", "v2.0.0");
+        var pair = await SyncOnce();
+
+        var a = await FakeForge.RefsAsync(gh);
+        var b = await FakeForge.RefsAsync(gl);
+        Assert.Equal(a.OrderBy(kv => kv.Key), b.OrderBy(kv => kv.Key));          // every branch and tag object identical
+        Assert.Equal(6, a.Count);                                               // main, release/1.x, 4 version tags
+        Assert.Equal(new TagSummary(4, 0, 0, 0), pair.Tags);
+        Assert.Equal(RepoStatus.Synced, pair.Status);
+
+        // Each version checks out to the same tree on GitLab as on GitHub.
+        foreach (var v in new[] { "v1.0.0", "v1.0.1", "v1.1.0", "v2.0.0" })
+            Assert.Equal(await FakeForge.Git(gh, "rev-parse", v + "^{tree}"), await FakeForge.Git(gl, "rev-parse", v + "^{tree}"));
+
+        // Re-running changes nothing.
+        var again = await svc.SyncAsync(pair, Provider.GitHub);
+        Assert.Equal(0, again.Pushed);
+        Assert.Equal(b.OrderBy(kv => kv.Key), (await FakeForge.RefsAsync(gl)).OrderBy(kv => kv.Key));
+
+        // A version tag moved on GitHub after release is reported, never silently overwritten on GitLab.
+        await FakeForge.Git(_work, "tag", "-f", "v1.0.0", "HEAD");
+        await FakeForge.Git(_work, "push", "-q", "--force", gh, "refs/tags/v1.0.0");
+        var moved = await SyncOnce();
+        Assert.Equal(b["refs/tags/v1.0.0"], (await FakeForge.RefsAsync(gl))["refs/tags/v1.0.0"]);
+        Assert.Equal(1, moved.Tags!.Different);
+        Assert.Equal(RepoStatus.OutOfSync, moved.Status);
+        Assert.Contains(_log.Since(0), e => e.Level == SyncLogLevel.Warning && e.Message.Contains("v1.0.0") && e.Message.Contains("덮어쓰지"));
+    }
+
     [Fact]
     public async Task Sync_to_gitlab_creates_branches_fast_forwards_pushes_tags_and_skips_diverged()
     {

@@ -1,4 +1,4 @@
-// GitSync web UI — talks to the GitSync server through /api (proxied by nginx).
+// GitSync web UI — talks to the GitSync server through /api.
 (() => {
   "use strict";
 

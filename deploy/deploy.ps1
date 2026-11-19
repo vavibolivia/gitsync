@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Windows에서 원격 Linux 서버로 GitSync를 배포합니다 (소스 복사 → 서버에서 podman 빌드/실행).
 

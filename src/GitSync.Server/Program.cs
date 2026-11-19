@@ -26,11 +26,18 @@ if (accessKey.Length == 0)
     app.Logger.LogWarning("GITSYNC_ACCESS_KEY is not set: the API is open to anyone who can reach it.");
 
 // Optional: serve the web UI directly (development without nginx).
-if (Environment.GetEnvironmentVariable("GITSYNC_WEB_ROOT") is { Length: > 0 } webRoot && Directory.Exists(webRoot))
+if (Environment.GetEnvironmentVariable("GITSYNC_WEB_ROOT") is { Length: > 0 } webRoot)
 {
-    var fp = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(Path.GetFullPath(webRoot));
-    app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fp });
-    app.UseStaticFiles(new StaticFileOptions { FileProvider = fp });
+    // A relative path resolves against the working directory, which `dotnet run --project` sets to the project folder.
+    var webRootFull = Path.GetFullPath(webRoot);
+    if (Directory.Exists(webRootFull))
+    {
+        var fp = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webRootFull);
+        app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fp });
+        app.UseStaticFiles(new StaticFileOptions { FileProvider = fp });
+    }
+    else
+        app.Logger.LogWarning("GITSYNC_WEB_ROOT directory not found, the web UI is not served: {Path}", webRootFull);
 }
 
 // Access key check for every /api call except health.

@@ -271,7 +271,7 @@ public sealed class MainViewModel : ObservableObject
                 ? (Backend!.CreateMissingRepos ? $"{to.Label()}에 새로 생성: {create}개" : $"{to.Label()}에 없는 {create}개는 자동 생성이 꺼져 있어 건너뜀")
                 : $"{to.Label()}에 없는 저장소 없음",
             "새 브랜치 생성 + fast-forward 가능한 브랜치 업데이트",
-            Backend.SyncTags ? "누락된 태그 푸시" : "태그는 동기화하지 않음",
+            Backend!.SyncTags ? "누락된 태그 푸시" : "태그는 동기화하지 않음",
             "분기된 브랜치는 덮어쓰지 않고 건너뜀",
         };
         if (!Dialogs.Confirm($"{from.Label()} → {to.Label()} 일괄 동기화",

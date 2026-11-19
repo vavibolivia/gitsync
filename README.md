@@ -109,7 +109,7 @@ Windows에서 원격 서버로 바로 배포 (소스를 복사한 뒤 **그 서�
 ```bash
 dotnet build GitSync.sln
 dotnet run --project src/GitSync.Desktop                     # 데스크톱
-GITSYNC_WEB_ROOT=web dotnet run --project src/GitSync.Server # 서버 + 웹 UI (nginx 없이)
+GITSYNC_WEB_ROOT="$PWD/web" dotnet run --project src/GitSync.Server # 서버 + 웹 UI (nginx 없이, 절대 경로 필요)
 
 # 단일 exe
 dotnet publish src/GitSync.Desktop -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish

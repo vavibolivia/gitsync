@@ -3,4 +3,4 @@ obj/
 .vs/
 *.user
 publish/
-*.png
+/*.png

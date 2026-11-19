@@ -665,10 +665,10 @@
                         </ToggleButton>
                         <ContentPresenter Margin="12,0,32,0" VerticalAlignment="Center" IsHitTestVisible="False"
                                           Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
-                        <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
-                               Focusable="False" PopupAnimation="Fade">
-                            <Border Background="#000000" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" CornerRadius="0"
-                                    Padding="4" Margin="0,4,0,0" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                        <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                               Focusable="False" AllowsTransparency="False" PopupAnimation="None">
+                            <Border Background="#1A1A1A" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" CornerRadius="0"
+                                    Padding="4" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
                                 <ScrollViewer MaxHeight="260">
                                     <StackPanel IsItemsHost="True"/>
                                 </ScrollViewer>

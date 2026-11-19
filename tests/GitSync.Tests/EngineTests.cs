@@ -173,6 +173,18 @@ public sealed class EngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GitHub_id_that_is_an_email_falls_back_to_the_token_account()
+    {
+        // The GitHub "ID" field takes a username; an email (or any non-user) must not 404 the whole scan.
+        await _forge.AddGitHubAsync("octo/mine", materialize: false);
+        await _forge.AddGitLabAsync("mirrors/mine", materialize: false);
+        using var svc = new SyncService(Options(o => o.GitHubOwner = "vavibolivia@gmail.com"), _log);
+        var pairs = await svc.ScanAsync();
+        Assert.Contains(pairs, p => p.Name == "mine" && p.GitHub?.FullName == "octo/mine");
+        Assert.Contains(svc.LastGitHubRepos, r => r.FullName == "octo/mine");
+    }
+
+    [Fact]
     public async Task Manual_pairs_show_only_the_repositories_the_user_added()
     {
         await _forge.AddGitHubAsync("octo/frontend", materialize: false);

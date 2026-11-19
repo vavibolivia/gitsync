@@ -100,10 +100,16 @@ public sealed class SyncService : ISyncBackend
 
         var ghTask = gh.GetReposAsync(Options.GitHubOwner, Options.IncludeArchived, ct);
         var glTask = gl.GetProjectsAsync(Options.GitLabGroup, Options.IncludeArchived, ct);
-        await Task.WhenAll(ghTask, glTask);
-
-        LastGitHubRepos = ghTask.Result;
-        LastGitLabRepos = glTask.Result;
+        try
+        {
+            await Task.WhenAll(ghTask, glTask);
+        }
+        finally
+        {
+            // Keep whichever side succeeded so the pair pickers still fill when the other side fails.
+            if (ghTask.IsCompletedSuccessfully) LastGitHubRepos = ghTask.Result;
+            if (glTask.IsCompletedSuccessfully) LastGitLabRepos = glTask.Result;
+        }
         var pairs = Options.ManualPairs ? MatchManual(ghTask.Result, glTask.Result) : Match(ghTask.Result, glTask.Result);
         Log.Success($"GitHub {ghTask.Result.Count}개, GitLab {glTask.Result.Count}개 → {pairs.Count}개 항목 " +
                     $"(매칭 {pairs.Count(p => p.HasBoth)}, GitHub만 {pairs.Count(p => p.GitLab is null)}, GitLab만 {pairs.Count(p => p.GitHub is null)})", "scan");

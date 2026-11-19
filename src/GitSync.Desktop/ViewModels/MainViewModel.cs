@@ -217,6 +217,7 @@ public sealed class MainViewModel : ObservableObject
 
     private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromHours(3) };
     private bool _updating;
+    private string? _lastUpdateError;
 
     public string VersionText => $"v{AutoUpdater.CurrentVersion}";
 
@@ -259,7 +260,13 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Logger.Warn($"자동 업데이트 실패: {ex.Message}", "update");
+            // Log the same failure only once per session so a blocked network doesn't fill the activity log.
+            var msg = $"자동 업데이트 확인 실패: {ex.Message}";
+            if (msg != _lastUpdateError)
+            {
+                _lastUpdateError = msg;
+                Logger.Warn(msg + " (앱 사용에는 영향 없음)", "update");
+            }
         }
         finally
         {
@@ -360,6 +367,8 @@ public sealed class MainViewModel : ObservableObject
         {
             Logger.Error(ex.Message, "scan", (ex as SyncException)?.Detail);
             ShowToast(ex.Message, "Error");
+            // Even if one side failed, fill the pair pickers from whatever side was fetched.
+            if (svc is SyncService partial) LoadChoices(partial);
         }
         finally
         {

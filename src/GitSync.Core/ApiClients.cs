@@ -109,15 +109,17 @@ public sealed class GitHubClient : ApiClientBase
 
     public async Task<List<RemoteRepo>> GetReposAsync(string? owner, bool includeArchived, CancellationToken ct = default)
     {
-        string basePath;
         var login = await GetLoginAsync(ct);
-        if (string.IsNullOrWhiteSpace(owner) || owner.Trim().Equals(login, StringComparison.OrdinalIgnoreCase))
+        owner = owner?.Trim() ?? "";
+        // An email, or the token's own account, means "my repositories" — not a users/{owner} lookup (that 404s on an email).
+        bool mine = owner.Length == 0 || owner.Contains('@') || owner.Equals(login, StringComparison.OrdinalIgnoreCase);
+        string basePath;
+        if (mine)
         {
             basePath = "user/repos?affiliation=owner&sort=full_name";
         }
         else
         {
-            owner = owner.Trim();
             using var org = await SendAsync(HttpMethod.Get, $"orgs/{Uri.EscapeDataString(owner)}", null, ct, allowNotFound: true);
             basePath = org is not null
                 ? $"orgs/{Uri.EscapeDataString(owner)}/repos?type=all&sort=full_name"
@@ -127,7 +129,16 @@ public sealed class GitHubClient : ApiClientBase
         var list = new List<RemoteRepo>();
         for (int page = 1; ; page++)
         {
-            using var doc = await SendAsync(HttpMethod.Get, $"{basePath}&per_page=100&page={page}", null, ct);
+            // If a typed owner is neither an org nor a real user, fall back to the token's own repositories instead of 404ing.
+            using var doc = await SendAsync(HttpMethod.Get, $"{basePath}&per_page=100&page={page}", null, ct,
+                allowNotFound: !mine && page == 1);
+            if (doc is null && !mine)
+            {
+                mine = true;
+                basePath = "user/repos?affiliation=owner&sort=full_name";
+                page = 0;   // restart from page 1 with the fallback
+                continue;
+            }
             int count = 0;
             foreach (var e in doc!.RootElement.EnumerateArray())
             {

@@ -211,6 +211,37 @@ public sealed class EngineTests : IAsyncLifetime
         Assert.Equal(expected, SyncOptions.NormalizeGitHubApiUrl(input));
 
     [Theory]
+    [InlineData("v1.2.0", "1.1.0", true)]
+    [InlineData("v1.1.0", "1.1.0", false)]
+    [InlineData("v1.0.9", "1.1.0", false)]
+    [InlineData("1.10.0", "1.9.3", true)]
+    [InlineData("v2.0", "1.9.9", true)]
+    [InlineData("not-a-version", "1.0.0", false)]
+    public void Update_is_offered_only_for_a_newer_release(string tag, string current, bool expected)
+    {
+        var json = $$"""
+            {"tag_name":"{{tag}}","draft":false,"prerelease":false,"assets":[
+              {"name":"GitSync-win-x64.zip","size":1,"browser_download_url":"https://example.com/z.zip"},
+              {"name":"GitSync.exe","size":123,"digest":"sha256:ABCDEF","browser_download_url":"https://example.com/GitSync.exe"}]}
+            """;
+        var info = UpdateChecker.ParseLatest(json, Version.Parse(current));
+        Assert.Equal(expected, info is not null);
+        if (info is null) return;
+        Assert.Equal("https://example.com/GitSync.exe", info.DownloadUrl);
+        Assert.Equal(123, info.Size);
+        Assert.Equal("ABCDEF", info.Sha256);
+    }
+
+    [Fact]
+    public void Update_ignores_prereleases_and_releases_without_the_exe()
+    {
+        var current = new Version(1, 0, 0);
+        Assert.Null(UpdateChecker.ParseLatest("""{"tag_name":"v9.0.0","prerelease":true,"assets":[{"name":"GitSync.exe","browser_download_url":"https://example.com/a"}]}""", current));
+        Assert.Null(UpdateChecker.ParseLatest("""{"tag_name":"v9.0.0","assets":[{"name":"other.zip","browser_download_url":"https://example.com/a"}]}""", current));
+        Assert.Null(UpdateChecker.ParseLatest("""{"message":"Not Found"}""", current));
+    }
+
+    [Theory]
     [InlineData("", "https://gitlab.com")]
     [InlineData("gitlab.com", "https://gitlab.com")]
     [InlineData("10.0.0.7:8443", "https://10.0.0.7:8443")]

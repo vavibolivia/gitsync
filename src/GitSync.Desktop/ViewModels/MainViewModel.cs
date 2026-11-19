@@ -213,8 +213,63 @@ public sealed class MainViewModel : ObservableObject
 
     // ───────────────────────── lifecycle ─────────────────────────
 
+    // ───────────────────────── self-update ─────────────────────────
+
+    private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromHours(3) };
+    private bool _updating;
+
+    public string VersionText => $"v{AutoUpdater.CurrentVersion}";
+
+    private void StartAutoUpdate()
+    {
+        AutoUpdater.CleanupOld();
+        var args = Environment.GetCommandLineArgs();
+        var i = Array.IndexOf(args, "--updated-to");
+        if (i >= 0 && i + 1 < args.Length)
+        {
+            Logger.Success($"{args[i + 1]}(으)로 업데이트되었습니다. 설정과 저장소 쌍은 그대로 유지됩니다.", "update");
+            ShowToast($"{args[i + 1]}(으)로 업데이트되었습니다.", "Success");
+        }
+        _updateTimer.Tick += async (_, _) => await CheckForUpdateAsync();
+        _updateTimer.Start();
+        _ = CheckForUpdateAsync();
+    }
+
+    /// <summary>Installs a newer release when there is one. Never interrupts a running job or unsaved settings.</summary>
+    private async Task CheckForUpdateAsync()
+    {
+        if (_updating || !Settings.AutoUpdate || !AutoUpdater.CanSelfUpdate) return;
+        _updating = true;
+        try
+        {
+            var info = await AutoUpdater.CheckAsync();
+            if (info is null) return;
+            Logger.Info($"새 버전 {info.Tag} 발견 (현재 {VersionText}). 내려받는 중…", "update");
+            var file = await AutoUpdater.DownloadAsync(info);
+            Logger.Info($"{info.Tag} 내려받기 및 검증 완료", "update");
+
+            while (IsBusy || Settings.IsDirty) await Task.Delay(2000);   // wait for a quiet moment
+            if (!Settings.AutoUpdate) { try { System.IO.File.Delete(file); } catch { /* ignore */ } return; }
+
+            ShowToast($"{info.Tag}(으)로 업데이트합니다. 잠시 후 다시 시작됩니다.", "Info");
+            await Task.Delay(1500);
+            SettingsStore.Backup();
+            AutoUpdater.ApplyAndRestart(file, info);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"자동 업데이트 실패: {ex.Message}", "update");
+        }
+        finally
+        {
+            _updating = false;
+        }
+    }
+
     public async Task InitializeAsync()
     {
+        StartAutoUpdate();
         ApplySettings(refresh: false);
         Logger.Info($"GitSync 시작 · 실행 위치: {ExecutionLocation}", "app");
         if (Settings.IsConfigured) await RefreshAsync();

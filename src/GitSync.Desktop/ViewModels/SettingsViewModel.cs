@@ -22,6 +22,7 @@ public sealed class SettingsViewModel : ObservableObject
         _localOptions = s.Options;
         _mode = s.Mode;
         _showAdvanced = s.IsServer;
+        _autoUpdate = s.AutoUpdate;
         _showAdvanced = s.IsServer;
         _serverUrl = s.ServerUrl;
         _serverKey = s.ServerKey;
@@ -92,6 +93,7 @@ public sealed class SettingsViewModel : ObservableObject
     private string _gitLabUrl = "", _gitLabToken = "", _gitLabGroup = "", _gitLabTargetNamespace = "", _gitLabVisibility = "private";
     private string _cacheRoot = "", _nameMappings = "", _gitLabUser = "", _pairs = "";
     private bool _showAdvanced;
+    private bool _autoUpdate = true;
     private bool _syncTags, _createMissingRepos, _includeArchived;
     private int _maxParallel, _autoSyncMinutes;
     private string? _gitHubTestResult, _gitLabTestResult;
@@ -103,6 +105,7 @@ public sealed class SettingsViewModel : ObservableObject
     public string GitHubOwner { get => _gitHubOwner; set => Dirty(ref _gitHubOwner, value); }
     public string GitLabUser { get => _gitLabUser; set => Dirty(ref _gitLabUser, value); }
     /// <summary>Shows the rarely needed fields (server addresses, run location, sync options).</summary>
+    public bool AutoUpdate { get => _autoUpdate; set => Dirty(ref _autoUpdate, value); }
     public bool ShowAdvanced { get => _showAdvanced; set => Set(ref _showAdvanced, value); }
     /// <summary>Pairs added by hand, one "githubRepo=gitlabProject" per line (local mode).</summary>
     public string Pairs => _pairs;
@@ -183,7 +186,7 @@ public sealed class SettingsViewModel : ObservableObject
 
     public DesktopSettings ToDesktopSettings() => new()
     {
-        Mode = _mode, ServerUrl = ServerUrl.Trim(), ServerKey = ServerKey.Trim(), Options = ToLocalOptions(),
+        Mode = _mode, ServerUrl = ServerUrl.Trim(), ServerKey = ServerKey.Trim(), Options = ToLocalOptions(), AutoUpdate = AutoUpdate,
     };
 
     /// <summary>Server settings payload (empty tokens keep the server's tokens).</summary>

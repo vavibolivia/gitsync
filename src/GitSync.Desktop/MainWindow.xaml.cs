@@ -71,18 +71,18 @@ public partial class MainWindow : Window
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     private void OnClose(object sender, RoutedEventArgs e) => Close();
 
-    // Dark window frame + rounded corners on Windows 11.
+    // Dark window frame with square corners on Windows 11.
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
     private void ApplyWindowEffects()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
-        int dark = 1, round = 2, border = 0x00382923; // COLORREF (BGR) of #000000
+        int dark = 1, round = 1, border = 0x00FFFFFF; // square corners (DWMWCP_DONOTROUND), white frame
         try
         {
             DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));   // DWMWA_USE_IMMERSIVE_DARK_MODE
-            DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));  // DWMWA_WINDOW_CORNER_PREFERENCE = ROUND
+            DwmSetWindowAttribute(hwnd, 33, ref round, sizeof(int));  // DWMWA_WINDOW_CORNER_PREFERENCE
             DwmSetWindowAttribute(hwnd, 34, ref border, sizeof(int)); // DWMWA_BORDER_COLOR
         }
         catch { /* older Windows */ }

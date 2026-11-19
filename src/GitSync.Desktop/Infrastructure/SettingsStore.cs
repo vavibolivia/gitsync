@@ -12,6 +12,8 @@ public sealed class DesktopSettings
     public string Mode { get; set; } = "Local";
     public string ServerUrl { get; set; } = "";
     public string ServerKey { get; set; } = "";
+    /// <summary>Install newer GitHub releases of GitSync automatically.</summary>
+    public bool AutoUpdate { get; set; } = true;
     public SyncOptions Options { get; set; } = new();
     public bool IsServer => Mode == "Server";
 }
@@ -36,6 +38,7 @@ public static class SettingsStore
         public SyncOptions Options { get; set; } = new();
         public string? GitHubTokenProtected { get; set; }
         public string? GitLabTokenProtected { get; set; }
+        public bool AutoUpdate { get; set; } = true;
     }
 
     public static DesktopSettings Load()
@@ -53,11 +56,14 @@ public static class SettingsStore
                 Mode = dto.Mode == "Server" ? "Server" : "Local",
                 ServerUrl = dto.ServerUrl ?? "",
                 ServerKey = Unprotect(dto.ServerKeyProtected),
+                AutoUpdate = dto.AutoUpdate,
                 Options = o,
             };
         }
         catch
         {
+            // Never lose what the user entered: keep the unreadable file aside instead of overwriting it on the next save.
+            try { File.Copy(FilePath, FilePath + ".unreadable", overwrite: false); } catch { /* already kept or gone */ }
             return new DesktopSettings();
         }
     }
@@ -71,6 +77,7 @@ public static class SettingsStore
             Mode = s.Mode,
             ServerUrl = s.ServerUrl,
             ServerKeyProtected = Protect(s.ServerKey),
+            AutoUpdate = s.AutoUpdate,
             GitHubTokenProtected = Protect(copy.GitHubToken),
             GitLabTokenProtected = Protect(copy.GitLabToken),
             Options = copy,
@@ -78,6 +85,13 @@ public static class SettingsStore
         copy.GitHubToken = "";
         copy.GitLabToken = "";
         File.WriteAllText(FilePath, JsonSerializer.Serialize(dto, Json));
+    }
+
+    /// <summary>Copies settings.json to settings.json.bak (called before the app replaces itself with a newer version).</summary>
+    public static void Backup()
+    {
+        try { if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".bak", overwrite: true); }
+        catch { /* best effort */ }
     }
 
     private static string? Protect(string? plain)

@@ -247,6 +247,12 @@
                                         <TextBlock Text="archived 저장소도 불러오기" Style="{StaticResource Dim}" FontSize="11.5"/>
                                     </StackPanel>
                                 </CheckBox>
+                                <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding AutoUpdate}" Margin="0,0,16,12">
+                                    <StackPanel>
+                                        <TextBlock Text="자동 업데이트" FontWeight="SemiBold"/>
+                                        <TextBlock Text="새 버전이 나오면 받아서 다시 시작 (설정은 유지)" Style="{StaticResource Dim}" FontSize="11.5"/>
+                                    </StackPanel>
+                                </CheckBox>
                             </UniformGrid>
 
                             <Grid>

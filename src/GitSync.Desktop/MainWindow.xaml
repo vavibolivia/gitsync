@@ -33,7 +33,7 @@
                 <StackPanel Orientation="Horizontal" Margin="6,22,0,28">
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="GitSync" FontFamily="{StaticResource DisplayFont}" FontSize="14" FontWeight="Bold"/>
-                        <TextBlock Text="GitHub ⇄ GitLab" FontSize="11.5" Foreground="{StaticResource TextMuteBrush}"/>
+                        <TextBlock Text="{Binding VersionText}" FontSize="11.5" Foreground="{StaticResource TextMuteBrush}"/>
                     </StackPanel>
                 </StackPanel>
 

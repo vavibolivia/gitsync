@@ -245,6 +245,20 @@ public sealed class EngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Update_captures_the_zip_asset_as_a_fallback()
+    {
+        var json = """
+            {"tag_name":"v2.0.0","draft":false,"prerelease":false,"assets":[
+              {"name":"GitSync-win-x64.zip","size":10,"browser_download_url":"https://example.com/GitSync-win-x64.zip"},
+              {"name":"GitSync.exe","size":123,"digest":"sha256:ABC","browser_download_url":"https://example.com/GitSync.exe"}]}
+            """;
+        var info = UpdateChecker.ParseLatest(json, new Version(1, 0, 0));
+        Assert.NotNull(info);
+        Assert.Equal("https://example.com/GitSync.exe", info!.DownloadUrl);
+        Assert.Equal("https://example.com/GitSync-win-x64.zip", info.ZipUrl);
+    }
+
+    [Fact]
     public void Update_ignores_prereleases_and_releases_without_the_exe()
     {
         var current = new Version(1, 0, 0);

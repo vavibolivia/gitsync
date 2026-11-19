@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -54,32 +55,62 @@ public static class AutoUpdater
             Environment.GetEnvironmentVariable("GITSYNC_UPDATE_API"),
             Environment.GetEnvironmentVariable("GITSYNC_UPDATE_REPO"), ct);
 
-    /// <summary>Downloads and verifies the new exe. Returns its path (next to the running exe).</summary>
+    public static string ReleasesPageUrl
+    {
+        get
+        {
+            var repo = Environment.GetEnvironmentVariable("GITSYNC_UPDATE_REPO") is { Length: > 0 } r ? r : UpdateChecker.DefaultRepo;
+            return $"https://github.com/{repo}/releases/latest";
+        }
+    }
+
+    /// <summary>
+    /// Downloads and verifies the new exe next to the running one. Tries the raw .exe first; if that download fails
+    /// (some networks block the .exe but allow the .zip), falls back to the release .zip and extracts GitSync.exe.
+    /// </summary>
     public static async Task<string> DownloadAsync(UpdateInfo info, CancellationToken ct = default)
     {
         var exe = ExePath ?? throw new SyncException("실행 파일 경로를 알 수 없습니다.");
         var target = exe + ".new";
         try
         {
-            using (var resp = await Http.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct))
+            Exception? exeError = null;
+            try
             {
-                if (!resp.IsSuccessStatusCode)
-                    throw new SyncException($"업데이트 파일을 받을 수 없습니다: HTTP {(int)resp.StatusCode}");
-                await using var src = await resp.Content.ReadAsStreamAsync(ct);
-                await using var dst = File.Create(target);
-                await src.CopyToAsync(dst, ct);
+                await DownloadToAsync(info.DownloadUrl, target, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException && info.ZipUrl is { Length: > 0 })
+            {
+                exeError = ex;
             }
 
-            var length = new FileInfo(target).Length;
-            if (info.Size > 0 && length != info.Size)
-                throw new SyncException($"업데이트 파일 크기가 다릅니다 ({length} / {info.Size}).");
+            if (exeError is not null)
+            {
+                // Fall back to the zip: download, extract GitSync.exe, drop the archive.
+                var zipPath = exe + ".zip";
+                try
+                {
+                    await DownloadToAsync(info.ZipUrl!, zipPath, ct);
+                    using (var zip = ZipFile.OpenRead(zipPath))
+                    {
+                        var entry = zip.Entries.FirstOrDefault(e => e.Name.Equals(UpdateChecker.AssetName, StringComparison.OrdinalIgnoreCase))
+                            ?? throw new SyncException($"zip 안에 {UpdateChecker.AssetName}이(가) 없습니다. (exe 오류: {exeError.Message})");
+                        if (File.Exists(target)) File.Delete(target);
+                        entry.ExtractToFile(target, overwrite: true);
+                    }
+                }
+                finally { try { File.Delete(zipPath); } catch { /* ignore */ } }
+            }
 
+            // Verify what we ended up with.
+            if (info.Size > 0 && exeError is null && new FileInfo(target).Length != info.Size)
+                throw new SyncException($"업데이트 파일 크기가 다릅니다 ({new FileInfo(target).Length} / {info.Size}).");
             await using (var fs = File.OpenRead(target))
             {
                 var header = new byte[2];
                 if (await fs.ReadAsync(header, ct) != 2 || header[0] != (byte)'M' || header[1] != (byte)'Z')
                     throw new SyncException("업데이트 파일이 실행 파일이 아닙니다.");
-                if (info.Sha256 is { Length: > 0 } expected)
+                if (exeError is null && info.Sha256 is { Length: > 0 } expected)   // the zip's exe may differ byte-for-byte; skip hash there
                 {
                     fs.Position = 0;
                     var actual = Convert.ToHexString(await SHA256.HashDataAsync(fs, ct));
@@ -94,6 +125,16 @@ public static class AutoUpdater
             try { File.Delete(target); } catch { /* ignore */ }
             throw;
         }
+    }
+
+    private static async Task DownloadToAsync(string url, string path, CancellationToken ct)
+    {
+        using var resp = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (!resp.IsSuccessStatusCode)
+            throw new SyncException($"다운로드 실패: HTTP {(int)resp.StatusCode}");
+        await using var src = await resp.Content.ReadAsStreamAsync(ct);
+        await using var dst = File.Create(path);
+        await src.CopyToAsync(dst, ct);
     }
 
     /// <summary>Swaps the exe files and starts the new version. The caller shuts the application down afterwards.</summary>

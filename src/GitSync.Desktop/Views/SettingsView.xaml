@@ -35,6 +35,46 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,28,24">
             <StackPanel MaxWidth="1000" HorizontalAlignment="Stretch">
 
+                <!-- Software update -->
+                <Border Style="{StaticResource Card}" Padding="24,20" Margin="0,0,0,16">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="업데이트" Style="{StaticResource H3}" FontSize="15"/>
+                                <TextBlock Style="{StaticResource Dim}" FontSize="12">
+                                    <Run Text="현재 버전"/><Run Text=" "/><Run Text="{Binding CurrentVersionText, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource SecondaryButton}" Height="36" Command="{Binding CheckUpdateCommand}" Content="업데이트 확인"/>
+                                <Button Style="{StaticResource PrimaryButton}" Height="36" Margin="8,0,0,0" Command="{Binding InstallUpdateCommand}"
+                                        Content="지금 설치" Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}"/>
+                                <Button Style="{StaticResource SecondaryButton}" Height="36" Margin="8,0,0,0" Command="{Binding OpenReleasesCommand}"
+                                        Content="릴리스 페이지 열기"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="{Binding UpdateStatus}" Visibility="{Binding UpdateStatus, Converter={StaticResource NullToVis}}"
+                                   TextWrapping="Wrap" FontSize="12.5" Margin="0,4,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UpdateOk}" Value="False">
+                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="GitHub 릴리스에서 새 버전을 받아 설치합니다. exe 다운로드가 막힌 네트워크면 zip으로 자동 대체하며, 그래도 안 되면 '릴리스 페이지 열기'로 직접 받아 교체하세요."/>
+                    </StackPanel>
+                </Border>
+
                 <!-- GitHub -->
                 <Border Style="{StaticResource Card}" Padding="24,20" Margin="0,0,0,16">
                     <StackPanel>

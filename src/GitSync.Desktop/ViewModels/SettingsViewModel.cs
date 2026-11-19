@@ -39,6 +39,10 @@ public sealed class SettingsViewModel : ObservableObject
             Process.Start(new ProcessStartInfo("explorer.exe", $"\"{CacheRoot}\"") { UseShellExecute = true });
         });
         ResetCacheCommand = new RelayCommand(() => CacheRoot = new SyncOptions().CacheRoot);
+        CheckUpdateCommand = new AsyncRelayCommand(CheckUpdateAsync, () => !UpdateBusy);
+        InstallUpdateCommand = new AsyncRelayCommand(InstallUpdateAsync, () => !UpdateBusy && _pendingUpdate is not null);
+        OpenReleasesCommand = new RelayCommand(() =>
+            Process.Start(new ProcessStartInfo(AutoUpdater.ReleasesPageUrl) { UseShellExecute = true }));
     }
 
     public AsyncRelayCommand SaveCommand { get; }
@@ -46,6 +50,71 @@ public sealed class SettingsViewModel : ObservableObject
     public AsyncRelayCommand TestGitLabCommand { get; }
     public AsyncRelayCommand TestServerCommand { get; }
     public RelayCommand OpenCacheCommand { get; }
+    public AsyncRelayCommand CheckUpdateCommand { get; }
+    public AsyncRelayCommand InstallUpdateCommand { get; }
+    public RelayCommand OpenReleasesCommand { get; }
+
+    // ───────────────────────── software update ─────────────────────────
+
+    private GitSync.Core.UpdateInfo? _pendingUpdate;
+    private bool _updateBusy;
+    private string _updateStatus = "";
+    private bool? _updateOk;
+
+    public string CurrentVersionText => $"v{AutoUpdater.CurrentVersion}";
+    public bool UpdateBusy { get => _updateBusy; private set { if (Set(ref _updateBusy, value)) { System.Windows.Input.CommandManager.InvalidateRequerySuggested(); } } }
+    public string UpdateStatus { get => _updateStatus; private set => Set(ref _updateStatus, value); }
+    public bool? UpdateOk { get => _updateOk; private set => Set(ref _updateOk, value); }
+    public bool UpdateAvailable => _pendingUpdate is not null;
+
+    private async Task CheckUpdateAsync()
+    {
+        UpdateBusy = true;
+        UpdateOk = null;
+        UpdateStatus = "GitHub에서 최신 버전 확인 중…";
+        try
+        {
+            var info = await AutoUpdater.CheckAsync();
+            _pendingUpdate = info;
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+            OnPropertyChanged(nameof(UpdateAvailable));
+            UpdateOk = true;
+            UpdateStatus = info is null
+                ? $"최신 버전입니다 ({CurrentVersionText})."
+                : (AutoUpdater.CanSelfUpdate
+                    ? $"새 버전 {info.Tag}이(가) 있습니다. '지금 설치'를 누르면 받아서 다시 시작합니다."
+                    : $"새 버전 {info.Tag}이(가) 있습니다. 릴리스 페이지에서 받으세요.");
+        }
+        catch (Exception ex)
+        {
+            UpdateOk = false;
+            UpdateStatus = $"업데이트 확인 실패: {ex.Message}. 네트워크가 GitHub(HTTPS)를 막고 있으면 '릴리스 페이지 열기'로 직접 받으세요.";
+        }
+        finally { UpdateBusy = false; }
+    }
+
+    private async Task InstallUpdateAsync()
+    {
+        if (_pendingUpdate is not { } info) return;
+        UpdateBusy = true;
+        UpdateOk = null;
+        UpdateStatus = $"{info.Tag} 내려받는 중…";
+        try
+        {
+            var file = await AutoUpdater.DownloadAsync(info);
+            UpdateStatus = $"{info.Tag} 설치 후 다시 시작합니다…";
+            await Task.Delay(800);
+            SettingsStore.Backup();
+            AutoUpdater.ApplyAndRestart(file, info);
+            System.Windows.Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            UpdateOk = false;
+            UpdateStatus = $"설치 실패: {ex.Message}. '릴리스 페이지 열기'로 직접 받아 교체하세요.";
+        }
+        finally { UpdateBusy = false; }
+    }
     public RelayCommand ResetCacheCommand { get; }
 
     public IReadOnlyList<string> VisibilityOptions { get; } = ["private", "internal", "public", "source"];

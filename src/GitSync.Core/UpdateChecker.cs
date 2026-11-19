@@ -2,8 +2,9 @@ using System.Text.Json;
 
 namespace GitSync.Core;
 
-/// <summary>A release that is newer than the running version.</summary>
-public sealed record UpdateInfo(Version Version, string Tag, string DownloadUrl, long Size, string? Sha256);
+/// <summary>A release that is newer than the running version. <see cref="ZipUrl"/> is a fallback for networks that
+/// block the raw .exe download but allow the .zip.</summary>
+public sealed record UpdateInfo(Version Version, string Tag, string DownloadUrl, long Size, string? Sha256, string? ZipUrl = null);
 
 /// <summary>Looks up the latest GitHub release of GitSync itself (public API, no token is sent).</summary>
 public static class UpdateChecker
@@ -11,6 +12,7 @@ public static class UpdateChecker
     public const string DefaultApi = "https://api.github.com";
     public const string DefaultRepo = "vavibolivia/gitsync";
     public const string AssetName = "GitSync.exe";
+    public const string ZipAssetName = "GitSync-win-x64.zip";
 
     /// <summary>Parses "v1.2.3", "1.2.3", "1.2" or "1.2.3-beta+sha" into a three-part version.</summary>
     public static bool TryParseVersion(string? text, out Version version)
@@ -40,17 +42,24 @@ public static class UpdateChecker
             return null;
         if (!root.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array) return null;
 
+        string? exeUrl = null, zipUrl = null;
+        long size = 0; string? sha = null;
         foreach (var a in assets.EnumerateArray())
         {
-            if (!string.Equals(Str(a, "name"), AssetName, StringComparison.OrdinalIgnoreCase)) continue;
+            var name = Str(a, "name");
             var url = Str(a, "browser_download_url");
-            if (string.IsNullOrEmpty(url) || !url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return null;
-            var size = a.TryGetProperty("size", out var sz) && sz.ValueKind == JsonValueKind.Number ? sz.GetInt64() : 0;
-            var digest = Str(a, "digest");
-            var sha = digest is not null && digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) ? digest[7..].Trim() : null;
-            return new UpdateInfo(latest, tag!, url, size, sha);
+            if (string.IsNullOrEmpty(url) || !url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) continue;
+            if (string.Equals(name, AssetName, StringComparison.OrdinalIgnoreCase))
+            {
+                exeUrl = url;
+                size = a.TryGetProperty("size", out var sz) && sz.ValueKind == JsonValueKind.Number ? sz.GetInt64() : 0;
+                var digest = Str(a, "digest");
+                sha = digest is not null && digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) ? digest[7..].Trim() : null;
+            }
+            else if (string.Equals(name, ZipAssetName, StringComparison.OrdinalIgnoreCase))
+                zipUrl = url;
         }
-        return null;
+        return exeUrl is null ? null : new UpdateInfo(latest, tag!, exeUrl, size, sha, zipUrl);
     }
 
     public static async Task<UpdateInfo?> CheckAsync(HttpClient http, Version current, string? apiBase = null, string? repo = null,

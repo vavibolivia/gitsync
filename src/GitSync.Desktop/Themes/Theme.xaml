@@ -8,24 +8,24 @@
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
     <!-- ═══════════════ Palette ═══════════════ -->
-    <Color x:Key="Bg0Color">#0C0E14</Color>
-    <Color x:Key="Bg1Color">#10131A</Color>
-    <Color x:Key="CardColor">#151922</Color>
-    <Color x:Key="CardHoverColor">#1B202B</Color>
-    <Color x:Key="InputColor">#0F1218</Color>
-    <Color x:Key="BorderColor">#232938</Color>
-    <Color x:Key="BorderStrongColor">#323A4D</Color>
-    <Color x:Key="TextColor">#E9ECF3</Color>
-    <Color x:Key="TextDimColor">#9AA3B7</Color>
-    <Color x:Key="TextMuteColor">#626B80</Color>
-    <Color x:Key="AccentColor">#7B6CFF</Color>
-    <Color x:Key="AccentHoverColor">#9285FF</Color>
+    <Color x:Key="Bg0Color">#111111</Color>
+    <Color x:Key="Bg1Color">#161616</Color>
+    <Color x:Key="CardColor">#181818</Color>
+    <Color x:Key="CardHoverColor">#202020</Color>
+    <Color x:Key="InputColor">#0D0D0D</Color>
+    <Color x:Key="BorderColor">#2A2A2A</Color>
+    <Color x:Key="BorderStrongColor">#3A3A3A</Color>
+    <Color x:Key="TextColor">#E6E6E6</Color>
+    <Color x:Key="TextDimColor">#A0A0A0</Color>
+    <Color x:Key="TextMuteColor">#6E6E6E</Color>
+    <Color x:Key="AccentColor">#4C8DFF</Color>
+    <Color x:Key="AccentHoverColor">#6BA1FF</Color>
     <Color x:Key="SuccessColor">#3DD68C</Color>
     <Color x:Key="WarningColor">#F2B84B</Color>
     <Color x:Key="DangerColor">#F2606E</Color>
     <Color x:Key="InfoColor">#5AA8FF</Color>
     <Color x:Key="GitLabColor">#FC6D26</Color>
-    <Color x:Key="GitHubAccentColor">#B693FF</Color>
+    <Color x:Key="GitHubAccentColor">#9DB4D6</Color>
 
     <SolidColorBrush x:Key="Bg0Brush" Color="{StaticResource Bg0Color}"/>
     <SolidColorBrush x:Key="Bg1Brush" Color="{StaticResource Bg1Color}"/>
@@ -39,28 +39,18 @@
     <SolidColorBrush x:Key="TextMuteBrush" Color="{StaticResource TextMuteColor}"/>
     <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
     <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
-    <SolidColorBrush x:Key="AccentSoftBrush" Color="#267B6CFF"/>
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#264C8DFF"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
     <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
     <SolidColorBrush x:Key="GitLabBrush" Color="{StaticResource GitLabColor}"/>
     <SolidColorBrush x:Key="GitHubAccentBrush" Color="{StaticResource GitHubAccentColor}"/>
-    <SolidColorBrush x:Key="OverlayBrush" Color="#B3070910"/>
+    <SolidColorBrush x:Key="OverlayBrush" Color="#B3000000"/>
 
-    <LinearGradientBrush x:Key="BrandGradient" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Offset="0" Color="#8B7BFF"/>
-        <GradientStop Offset="0.55" Color="#C46BD6"/>
-        <GradientStop Offset="1" Color="#FC6D26"/>
-    </LinearGradientBrush>
+    <SolidColorBrush x:Key="BrandGradient" Color="{StaticResource AccentColor}"/>
 
-    <LinearGradientBrush x:Key="HeroGradient" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Offset="0" Color="#1A7B6CFF"/>
-        <GradientStop Offset="1" Color="#0AFC6D26"/>
-    </LinearGradientBrush>
-
-    <DropShadowEffect x:Key="CardShadow" BlurRadius="24" ShadowDepth="6" Direction="270" Opacity="0.35" Color="Black"/>
-    <DropShadowEffect x:Key="PopupShadow" BlurRadius="32" ShadowDepth="10" Direction="270" Opacity="0.55" Color="Black"/>
+    <SolidColorBrush x:Key="HeroGradient" Color="{StaticResource Bg1Color}"/>
 
     <!-- ═══════════════ Logos ═══════════════ -->
     <Geometry x:Key="GitHubGeometry">M8,0 C3.58,0 0,3.58 0,8 C0,11.54 2.29,14.53 5.47,15.59 C5.87,15.66 6.02,15.42 6.02,15.21 C6.02,15.02 6.01,14.39 6.01,13.72 C4,14.09 3.48,13.23 3.32,12.78 C3.23,12.55 2.84,11.84 2.5,11.65 C2.22,11.5 1.82,11.13 2.49,11.12 C3.12,11.11 3.57,11.7 3.72,11.94 C4.44,13.15 5.59,12.81 6.05,12.6 C6.12,12.08 6.33,11.73 6.56,11.53 C4.78,11.33 2.92,10.64 2.92,7.58 C2.92,6.71 3.23,5.99 3.74,5.43 C3.66,5.23 3.38,4.41 3.82,3.31 C3.82,3.31 4.49,3.1 6.02,4.13 C6.66,3.95 7.34,3.86 8.02,3.86 C8.7,3.86 9.38,3.95 10.02,4.13 C11.55,3.09 12.22,3.31 12.22,3.31 C12.66,4.41 12.38,5.23 12.3,5.43 C12.81,5.99 13.12,6.7 13.12,7.58 C13.12,10.65 11.25,11.33 9.47,11.53 C9.76,11.78 10.01,12.26 10.01,13.01 C10.01,14.08 10,14.94 10,15.21 C10,15.42 10.15,15.67 10.55,15.59 C13.71,14.53 16,11.53 16,8 C16,3.58 12.42,0 8,0 Z</Geometry>
@@ -75,13 +65,13 @@
     </Style>
     <Style x:Key="H1" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
-        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontSize" Value="17"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
     <Style x:Key="H2" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
-        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontSize" Value="15"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
     </Style>
@@ -123,7 +113,7 @@
         <Setter Property="Background" Value="{StaticResource CardBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="CornerRadius" Value="3"/>
     </Style>
 
     <!-- ═══════════════ Buttons ═══════════════ -->
@@ -146,8 +136,8 @@
                 <ControlTemplate TargetType="Button">
                     <Grid>
                         <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8"/>
-                        <Border x:Name="Hl" Background="White" Opacity="0" CornerRadius="8"/>
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3"/>
+                        <Border x:Name="Hl" Background="White" Opacity="0" CornerRadius="3"/>
                         <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="Center" RecognizesAccessKey="True"/>
                     </Grid>
@@ -259,7 +249,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
-                        <Border x:Name="Bd" Background="Transparent" CornerRadius="9"/>
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="3"/>
                         <Border x:Name="Bar" Width="3" Height="18" CornerRadius="2" HorizontalAlignment="Left"
                                 Background="{StaticResource BrandGradient}" Opacity="0"/>
                         <ContentPresenter Margin="14,0,10,0" VerticalAlignment="Center"/>
@@ -291,10 +281,10 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Grid>
                         <Border x:Name="Bd" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="1" CornerRadius="12" Padding="16,12">
+                                BorderThickness="1" CornerRadius="3" Padding="16,12">
                             <ContentPresenter/>
                         </Border>
-                        <Border x:Name="Hl" Background="White" Opacity="0" CornerRadius="12" IsHitTestVisible="False"/>
+                        <Border x:Name="Hl" Background="White" Opacity="0" CornerRadius="3" IsHitTestVisible="False"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -303,7 +293,7 @@
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                            <Setter TargetName="Bd" Property="Background" Value="#1A7B6CFF"/>
+                            <Setter TargetName="Bd" Property="Background" Value="#1A4C8DFF"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -328,7 +318,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}"
+                    <Border x:Name="Bd" CornerRadius="3" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                         <Grid>
                             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
@@ -375,7 +365,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="PasswordBox">
-                    <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}"
+                    <Border x:Name="Bd" CornerRadius="3" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                         <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Focusable="False"/>
                     </Border>
@@ -405,7 +395,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Border x:Name="Track" Width="38" Height="22" CornerRadius="11" Background="{StaticResource InputBrush}"
+                        <Border x:Name="Track" Width="38" Height="22" CornerRadius="3" Background="{StaticResource InputBrush}"
                                 BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" VerticalAlignment="Top" Margin="0,1,0,0">
                             <Ellipse x:Name="Knob" Width="14" Height="14" Fill="{StaticResource TextDimBrush}" HorizontalAlignment="Left" Margin="4,0"/>
                         </Border>
@@ -433,7 +423,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
-                    <Border x:Name="Bd" Background="Transparent" CornerRadius="7" Padding="12,6" Margin="2">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="3" Padding="12,6" Margin="2">
                         <ContentPresenter HorizontalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -455,7 +445,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border x:Name="Bd" CornerRadius="4" Background="{StaticResource BorderStrongBrush}" Margin="2"/>
+                    <Border x:Name="Bd" CornerRadius="3" Background="{StaticResource BorderStrongBrush}" Margin="2"/>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource TextMuteBrush}"/>
@@ -517,8 +507,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
-                    <Border Background="#232838" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
-                            CornerRadius="7" Padding="10,6" Margin="8" Effect="{StaticResource CardShadow}">
+                    <Border Background="#2A2A2A" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
+                            CornerRadius="3" Padding="10,6" Margin="8">
                         <ContentPresenter/>
                     </Border>
                 </ControlTemplate>
@@ -535,8 +525,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
-                    <Border Background="#1A1F2A" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
-                            CornerRadius="12" Padding="6" Margin="12" Effect="{StaticResource PopupShadow}">
+                    <Border Background="#1C1C1C" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
+                            CornerRadius="3" Padding="6" Margin="12">
                         <StackPanel IsItemsHost="True"/>
                     </Border>
                 </ControlTemplate>
@@ -550,7 +540,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="MenuItem">
-                    <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="10,9" MinWidth="280">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="3" Padding="10,9" MinWidth="280">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="30"/>
@@ -593,10 +583,10 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
                     <Grid>
-                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="11" Padding="12,10">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="3" Padding="12,10">
                             <ContentPresenter/>
                         </Border>
-                        <Border x:Name="Hl" Background="White" Opacity="0" CornerRadius="11" IsHitTestVisible="False"/>
+                        <Border x:Name="Hl" Background="White" Opacity="0" CornerRadius="3" IsHitTestVisible="False"/>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -630,7 +620,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
-                    <Border x:Name="Bd" Background="Transparent" CornerRadius="6" Padding="10,7">
+                    <Border x:Name="Bd" Background="Transparent" CornerRadius="3" Padding="10,7">
                         <ContentPresenter/>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -661,7 +651,7 @@
                             <ToggleButton.Template>
                                 <ControlTemplate TargetType="ToggleButton">
                                     <Border x:Name="Bd" Background="{StaticResource InputBrush}" BorderBrush="{StaticResource BorderBrush}"
-                                            BorderThickness="1" CornerRadius="8">
+                                            BorderThickness="1" CornerRadius="3">
                                         <TextBlock Text="&#xE70D;" Style="{StaticResource Icon}" FontSize="11" Foreground="{StaticResource TextDimBrush}"
                                                    HorizontalAlignment="Right" Margin="0,0,12,0"/>
                                     </Border>
@@ -677,7 +667,7 @@
                                           Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
                         <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True"
                                Focusable="False" PopupAnimation="Fade">
-                            <Border Background="#1A1F2A" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" CornerRadius="10"
+                            <Border Background="#1C1C1C" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" CornerRadius="3"
                                     Padding="4" Margin="0,4,0,0" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
                                 <ScrollViewer MaxHeight="260">
                                     <StackPanel IsItemsHost="True"/>
@@ -692,7 +682,7 @@
 
     <!-- ═══════════════ Status pill ═══════════════ -->
     <Style x:Key="Pill" TargetType="Border">
-        <Setter Property="CornerRadius" Value="20"/>
+        <Setter Property="CornerRadius" Value="3"/>
         <Setter Property="Padding" Value="9,3"/>
         <Setter Property="HorizontalAlignment" Value="Left"/>
         <Setter Property="VerticalAlignment" Value="Center"/>

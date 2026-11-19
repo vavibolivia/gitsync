@@ -78,7 +78,7 @@
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8F1;" FontSize="12" Foreground="{StaticResource AccentHoverBrush}"/>
                         <TextBlock Text="전체" Style="{StaticResource Dim}" Margin="7,0,0,0"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding TotalCount}" FontFamily="{StaticResource DisplayFont}" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding TotalCount}" FontFamily="{StaticResource MonoFont}" FontSize="18" FontWeight="SemiBold" Margin="0,4,0,0"/>
                 </StackPanel>
             </RadioButton>
             <RadioButton Style="{StaticResource StatCard}" GroupName="Filter" Command="{Binding SetFilterCommand}" CommandParameter="Synced"
@@ -88,7 +88,7 @@
                         <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}"/>
                         <TextBlock Text="동기화됨" Style="{StaticResource Dim}" Margin="8,0,0,0"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding SyncedCount}" FontFamily="{StaticResource DisplayFont}" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding SyncedCount}" FontFamily="{StaticResource MonoFont}" FontSize="18" FontWeight="SemiBold" Margin="0,4,0,0"/>
                 </StackPanel>
             </RadioButton>
             <RadioButton Style="{StaticResource StatCard}" GroupName="Filter" Command="{Binding SetFilterCommand}" CommandParameter="OutOfSync"
@@ -98,7 +98,7 @@
                         <Ellipse Width="8" Height="8" Fill="{StaticResource WarningBrush}"/>
                         <TextBlock Text="차이 있음" Style="{StaticResource Dim}" Margin="8,0,0,0"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding OutOfSyncCount}" FontFamily="{StaticResource DisplayFont}" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding OutOfSyncCount}" FontFamily="{StaticResource MonoFont}" FontSize="18" FontWeight="SemiBold" Margin="0,4,0,0"/>
                 </StackPanel>
             </RadioButton>
             <RadioButton Style="{StaticResource StatCard}" GroupName="Filter" Command="{Binding SetFilterCommand}" CommandParameter="GitHubOnly"
@@ -108,7 +108,7 @@
                         <Path Data="{StaticResource GitHubGeometry}" Fill="{StaticResource TextDimBrush}" Width="12" Height="12" Stretch="Uniform"/>
                         <TextBlock Text="GitLab에 없음" Style="{StaticResource Dim}" Margin="7,0,0,0"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding GitHubOnlyCount}" FontFamily="{StaticResource DisplayFont}" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding GitHubOnlyCount}" FontFamily="{StaticResource MonoFont}" FontSize="18" FontWeight="SemiBold" Margin="0,4,0,0"/>
                 </StackPanel>
             </RadioButton>
             <RadioButton Style="{StaticResource StatCard}" GroupName="Filter" Command="{Binding SetFilterCommand}" CommandParameter="GitLabOnly"
@@ -118,7 +118,7 @@
                         <Path Data="{StaticResource GitLabGeometry}" Fill="{StaticResource GitLabBrush}" Width="12" Height="12" Stretch="Uniform"/>
                         <TextBlock Text="GitHub에 없음" Style="{StaticResource Dim}" Margin="7,0,0,0"/>
                     </StackPanel>
-                    <TextBlock Text="{Binding GitLabOnlyCount}" FontFamily="{StaticResource DisplayFont}" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding GitLabOnlyCount}" FontFamily="{StaticResource MonoFont}" FontSize="18" FontWeight="SemiBold" Margin="0,4,0,0"/>
                 </StackPanel>
             </RadioButton>
         </UniformGrid>
@@ -214,7 +214,7 @@
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
                                 Visibility="{Binding SelectedPair, Converter={StaticResource NullToVis}, ConverterParameter=Invert}">
                         <Grid Width="72" Height="72" HorizontalAlignment="Center">
-                            <Border CornerRadius="22" Background="{StaticResource BrandGradient}" Opacity="0.18"/>
+                            <Border CornerRadius="3" Background="{StaticResource BrandGradient}" Opacity="0.18"/>
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE895;" FontSize="30" HorizontalAlignment="Center" Foreground="{StaticResource AccentHoverBrush}"/>
                         </Grid>
                         <TextBlock Text="저장소를 선택하세요" Style="{StaticResource H2}" HorizontalAlignment="Center" Margin="0,18,0,6"/>
@@ -230,7 +230,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- Repo header -->
-                        <Border CornerRadius="14,14,0,0" Background="{StaticResource HeroGradient}" Padding="24,20,24,18"
+                        <Border CornerRadius="3,3,0,0" Background="{StaticResource HeroGradient}" Padding="24,20,24,18"
                                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -244,7 +244,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Name}" Style="{StaticResource H2}" FontSize="20"/>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource H2}" FontSize="15"/>
                                     <Border Style="{StaticResource Pill}" Margin="12,0,0,0"
                                             Background="{Binding Status, Converter={StaticResource StatusBrush}, ConverterParameter=Soft}">
                                         <TextBlock Text="{Binding Status, Converter={StaticResource StatusText}}" FontSize="11.5" FontWeight="SemiBold"
@@ -361,7 +361,7 @@
                         </Grid>
 
                         <!-- Error banner -->
-                        <Border Grid.Row="2" Margin="24,14,24,0" CornerRadius="10" Padding="14,10" Background="#1FF2606E"
+                        <Border Grid.Row="2" Margin="24,14,24,0" CornerRadius="3" Padding="14,10" Background="#1FF2606E"
                                 BorderBrush="#55F2606E" BorderThickness="1"
                                 Visibility="{Binding Error, Converter={StaticResource NullToVis}}">
                             <StackPanel Orientation="Horizontal">
@@ -426,7 +426,7 @@
                                      Visibility="{Binding HasBoth, Converter={StaticResource BoolToVis}}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Border x:Name="Row" CornerRadius="10" Padding="10,9" Margin="0,0,0,4"
+                                        <Border x:Name="Row" CornerRadius="3" Padding="10,9" Margin="0,0,0,4"
                                                 Background="#08FFFFFF" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>

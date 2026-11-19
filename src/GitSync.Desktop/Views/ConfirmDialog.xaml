@@ -5,8 +5,8 @@
         ResizeMode="NoResize" ShowInTaskbar="False" WindowStartupLocation="CenterOwner"
         SizeToContent="Height" Width="520"
         FontFamily="{StaticResource UiFont}" Foreground="{StaticResource TextBrush}">
-    <Border Margin="24" Background="#171B25" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
-            CornerRadius="16" Effect="{StaticResource PopupShadow}">
+    <Border Margin="24" Background="#181818" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
+            CornerRadius="3">
         <Grid Margin="24,22,24,20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -16,7 +16,7 @@
             </Grid.RowDefinitions>
 
             <StackPanel Orientation="Horizontal">
-                <Border x:Name="IconBadge" Width="36" Height="36" CornerRadius="10" Background="#267B6CFF">
+                <Border x:Name="IconBadge" Width="36" Height="36" CornerRadius="3" Background="#264C8DFF">
                     <TextBlock x:Name="IconGlyph" Style="{StaticResource Icon}" Text="&#xE895;" FontSize="16"
                                HorizontalAlignment="Center" Foreground="{StaticResource AccentHoverBrush}"/>
                 </Border>
@@ -27,7 +27,7 @@
                        Foreground="{StaticResource TextDimBrush}" LineHeight="20"/>
 
             <Border x:Name="DetailsBox" Grid.Row="2" Margin="0,14,0,0" Background="{StaticResource InputBrush}"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="14,10">
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="3" Padding="14,10">
                 <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
                     <ItemsControl x:Name="DetailsList">
                         <ItemsControl.ItemTemplate>

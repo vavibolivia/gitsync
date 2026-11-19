@@ -49,7 +49,7 @@ public abstract class ApiClientBase : IDisposable
                 var msg = ExtractMessage(text);
                 var hint = resp.StatusCode switch
                 {
-                    HttpStatusCode.Unauthorized => " (토큰이 올바르지 않거나 만료되었습니다)",
+                    HttpStatusCode.Unauthorized => " (키가 올바르지 않거나 만료되었습니다. 비밀번호는 사용할 수 없으며 키(액세스 토큰)를 입력해야 합니다)",
                     HttpStatusCode.Forbidden => " (권한 부족 또는 API 사용량 제한)",
                     _ => "",
                 };
@@ -93,7 +93,7 @@ public sealed class GitHubClient : ApiClientBase
     private string? _login;
 
     public GitHubClient(string apiUrl, string token)
-        : base((string.IsNullOrWhiteSpace(apiUrl) ? "https://api.github.com" : apiUrl.Trim()).TrimEnd('/') + "/", "GitHub")
+        : base(SyncOptions.NormalizeGitHubApiUrl(apiUrl) + "/", "GitHub")
     {
         Http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
@@ -193,7 +193,7 @@ public sealed class GitLabClient : ApiClientBase
     private string? _username;
 
     public GitLabClient(string serverUrl, string token)
-        : base((string.IsNullOrWhiteSpace(serverUrl) ? "https://gitlab.com" : serverUrl.Trim()).TrimEnd('/') + "/api/v4/", "GitLab")
+        : base(SyncOptions.NormalizeGitLabUrl(serverUrl) + "/api/v4/", "GitLab")
     {
         Http.DefaultRequestHeaders.Add("PRIVATE-TOKEN", token.Trim());
     }

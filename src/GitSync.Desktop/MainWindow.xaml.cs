@@ -78,7 +78,7 @@ public partial class MainWindow : Window
     private void ApplyWindowEffects()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
-        int dark = 1, round = 2, border = 0x00382923; // COLORREF (BGR) of #2A2A2A
+        int dark = 1, round = 2, border = 0x00382923; // COLORREF (BGR) of #000000
         try
         {
             DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));   // DWMWA_USE_IMMERSIVE_DARK_MODE

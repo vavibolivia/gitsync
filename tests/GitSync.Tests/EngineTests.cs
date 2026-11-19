@@ -173,6 +173,62 @@ public sealed class EngineTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Manual_pairs_show_only_the_repositories_the_user_added()
+    {
+        await _forge.AddGitHubAsync("octo/frontend", materialize: false);
+        await _forge.AddGitHubAsync("octo/backend", materialize: false);
+        await _forge.AddGitHubAsync("octo/solo", materialize: false);
+        await _forge.AddGitHubAsync("octo/ignored", materialize: false);
+        await _forge.AddGitLabAsync("mirrors/web-ui", materialize: false);
+        await _forge.AddGitLabAsync("mirrors/backend", materialize: false);
+        await _forge.AddGitLabAsync("mirrors/gl-only", materialize: false);
+        await _forge.AddGitLabAsync("mirrors/ignored", materialize: false);
+
+        using var svc = new SyncService(Options(o =>
+        {
+            o.ManualPairs = true;
+            o.Pairs = "octo/frontend=mirrors/web-ui\nbackend=\nsolo=\n=mirrors/gl-only\nmissing=nowhere\n";
+        }), _log);
+        var pairs = await svc.ScanAsync();
+
+        Assert.Equal(new[] { "backend", "frontend", "gl-only", "solo" }, pairs.Select(p => p.Name));
+        Assert.Equal("mirrors/web-ui", pairs.Single(p => p.Name == "frontend").GitLab!.FullName);   // explicit, different names
+        Assert.Equal("mirrors/backend", pairs.Single(p => p.Name == "backend").GitLab!.FullName);   // empty side = same name
+        Assert.Equal(RepoStatus.GitHubOnly, pairs.Single(p => p.Name == "solo").Status);            // created on sync
+        Assert.Equal(RepoStatus.GitLabOnly, pairs.Single(p => p.Name == "gl-only").Status);
+        Assert.Contains(svc.LastGitHubRepos, r => r.Name == "ignored");                             // still offered for picking
+        Assert.Contains(_log.Since(0), e => e.Level == SyncLogLevel.Warning && e.Message.Contains("missing"));
+    }
+
+    [Theory]
+    [InlineData("", "https://api.github.com")]
+    [InlineData("github.com", "https://api.github.com")]
+    [InlineData("https://api.github.com/", "https://api.github.com")]
+    [InlineData("10.0.0.5", "https://10.0.0.5/api/v3")]
+    [InlineData("http://ghe.corp.local", "http://ghe.corp.local/api/v3")]
+    [InlineData("https://ghe.corp.local/api/v3", "https://ghe.corp.local/api/v3")]
+    public void GitHub_address_accepts_a_host_ip_or_url(string input, string expected) =>
+        Assert.Equal(expected, SyncOptions.NormalizeGitHubApiUrl(input));
+
+    [Theory]
+    [InlineData("", "https://gitlab.com")]
+    [InlineData("gitlab.com", "https://gitlab.com")]
+    [InlineData("10.0.0.7:8443", "https://10.0.0.7:8443")]
+    [InlineData("http://gitlab.corp.local/", "http://gitlab.corp.local")]
+    public void GitLab_address_accepts_a_host_ip_or_url(string input, string expected) =>
+        Assert.Equal(expected, SyncOptions.NormalizeGitLabUrl(input));
+
+    [Fact]
+    public async Task GitLab_id_must_match_the_account_of_the_key()
+    {
+        using var ok = new SyncService(Options(o => o.GitLabUser = FakeForge.GitLabUser.ToUpperInvariant()), _log);
+        Assert.Equal(FakeForge.GitLabUser, await ok.TestGitLabAsync());
+        using var bad = new SyncService(Options(o => o.GitLabUser = "someone-else"), _log);
+        var e = await Assert.ThrowsAsync<SyncException>(() => bad.TestGitLabAsync());
+        Assert.Contains("someone-else", e.Message);
+    }
+
+    [Fact]
     public async Task Duplicate_names_prefer_target_namespace()
     {
         await _forge.AddGitHubAsync("octo/dup", materialize: false);

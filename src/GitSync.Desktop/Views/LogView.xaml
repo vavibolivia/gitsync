@@ -25,7 +25,7 @@
                 <ListBox Style="{StaticResource CleanListBox}" ItemsSource="{Binding Logs}" ItemContainerStyle="{StaticResource PlainItem}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border x:Name="Row" Padding="12,9" CornerRadius="3" Background="Transparent">
+                            <Border x:Name="Row" Padding="12,9" CornerRadius="0" Background="Transparent">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="72"/>
@@ -42,7 +42,7 @@
                                                TextTrimming="CharacterEllipsis" Margin="0,0,12,0" VerticalAlignment="Top" ToolTip="{Binding Scope}"/>
                                     <StackPanel Grid.Column="3">
                                         <TextBlock x:Name="Msg" Text="{Binding Message}" TextWrapping="Wrap" FontSize="12.5"/>
-                                        <Border Margin="0,6,0,0" Padding="10,8" CornerRadius="3" Background="{StaticResource InputBrush}"
+                                        <Border Margin="0,6,0,0" Padding="10,8" CornerRadius="0" Background="{StaticResource InputBrush}"
                                                 Visibility="{Binding Detail, Converter={StaticResource NullToVis}}">
                                             <TextBox Text="{Binding Detail, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0"
                                                      Background="Transparent" Padding="0" MinHeight="0" FontFamily="{StaticResource MonoFont}"

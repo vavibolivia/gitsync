@@ -26,6 +26,8 @@ jobs:
           dotnet publish src/GitSync.Desktop/GitSync.Desktop.csproj -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
           -p:DebugType=none -o publish
+      - name: Zip (for networks that block .exe downloads)
+        run: Compress-Archive -Path publish/GitSync.exe -DestinationPath publish/GitSync-win-x64.zip
       - uses: actions/upload-artifact@v4
         with:
           name: GitSync-win-x64
@@ -34,7 +36,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: publish/GitSync.exe
+          files: |
+            publish/GitSync.exe
+            publish/GitSync-win-x64.zip
 
   # Real podman + nginx deployment test using deploy/deploy.sh
   deploy-e2e:

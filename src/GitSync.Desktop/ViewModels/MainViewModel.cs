@@ -53,6 +53,9 @@ public sealed class MainViewModel : ObservableObject
         ClearLogCommand = new RelayCommand(() => { Logs.Clear(); Logger.Clear(); OnPropertyChanged(nameof(ErrorLogCount)); });
         SetFilterCommand = new RelayCommand(p => Filter = p as string ?? "All");
         DismissToastCommand = new RelayCommand(() => ToastVisible = false);
+        AddPairCommand = new RelayCommand(AddPair, () => !IsBusy && CanEditPairs &&
+            (IsRealChoice(SelectedGitHubChoice) || IsRealChoice(SelectedGitLabChoice)));
+        RemovePairCommand = new RelayCommand(RemovePair, () => !IsBusy && CanEditPairs && SelectedPair is not null);
 
         AsyncRelayCommand.UnhandledError = ex =>
         {
@@ -72,6 +75,69 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ClearLogCommand { get; }
     public RelayCommand SetFilterCommand { get; }
     public RelayCommand DismissToastCommand { get; }
+    public RelayCommand AddPairCommand { get; }
+    public RelayCommand RemovePairCommand { get; }
+
+    // ───────────────────────── hand-made pairs (local mode) ─────────────────────────
+
+    public const string NewRepoChoice = "(같은 이름으로 새로 생성)";
+    public ObservableCollection<string> GitHubChoices { get; } = new();
+    public ObservableCollection<string> GitLabChoices { get; } = new();
+
+    private string? _selectedGitHubChoice, _selectedGitLabChoice;
+    public string? SelectedGitHubChoice { get => _selectedGitHubChoice; set => Set(ref _selectedGitHubChoice, value); }
+    public string? SelectedGitLabChoice { get => _selectedGitLabChoice; set => Set(ref _selectedGitLabChoice, value); }
+
+    /// <summary>Pairs are added by hand only when git runs on this PC; a server scans everything itself.</summary>
+    public bool CanEditPairs => Backend is { IsRemote: false };
+
+    private static bool IsRealChoice(string? choice) => !string.IsNullOrEmpty(choice) && choice != NewRepoChoice;
+
+    private void LoadChoices(SyncService svc)
+    {
+        void Fill(ObservableCollection<string> target, IEnumerable<RemoteRepo> repos, Func<RepoPairViewModel, RemoteRepo?> side)
+        {
+            var paired = Pairs.Select(p => side(p)?.FullName).Where(n => n is not null).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            target.Clear();
+            target.Add(NewRepoChoice);
+            foreach (var name in repos.Select(r => r.FullName).Where(n => !paired.Contains(n)).OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
+                target.Add(name);
+        }
+        Fill(GitHubChoices, svc.LastGitHubRepos, p => p.Model.GitHub);
+        Fill(GitLabChoices, svc.LastGitLabRepos, p => p.Model.GitLab);
+        SelectedGitHubChoice = SelectedGitLabChoice = NewRepoChoice;
+    }
+
+    private void AddPair()
+    {
+        var gh = IsRealChoice(SelectedGitHubChoice) ? SelectedGitHubChoice! : "";
+        var gl = IsRealChoice(SelectedGitLabChoice) ? SelectedGitLabChoice! : "";
+        if (gh.Length == 0 && gl.Length == 0) return;
+        var line = $"{gh}={gl}";
+        var lines = Settings.Pairs.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+        if (!lines.Contains(line, StringComparer.OrdinalIgnoreCase)) lines.Add(line);
+        Settings.SavePairs(string.Join('\n', lines));
+        Logger.Info($"저장소 쌍 추가: {(gh.Length > 0 ? gh : "(새로 생성)")} ⇄ {(gl.Length > 0 ? gl : "(새로 생성)")}", "pairs");
+        ApplySettings(refresh: true);
+    }
+
+    private void RemovePair()
+    {
+        if (SelectedPair?.Model is not { } pair) return;
+        static bool Same(string key, RemoteRepo? repo) => repo is not null &&
+            (key.Equals(repo.FullName, StringComparison.OrdinalIgnoreCase) ||
+             (!key.Contains('/') && key.Equals(repo.Name, StringComparison.OrdinalIgnoreCase)));
+        var kept = Settings.Pairs.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).Where(l =>
+        {
+            var i = l.IndexOf('=');
+            if (i < 0) return false;
+            var (gh, gl) = (l[..i].Trim(), l[(i + 1)..].Trim());
+            return !(gh.Length > 0 ? Same(gh, pair.GitHub) : Same(gl, pair.GitLab));
+        });
+        Settings.SavePairs(string.Join('\n', kept));
+        Logger.Info($"저장소 쌍 제거: {pair.Name} (원격 저장소는 삭제하지 않음)", "pairs");
+        ApplySettings(refresh: true);
+    }
 
     // ───────────────────────── state ─────────────────────────
 
@@ -116,8 +182,8 @@ public sealed class MainViewModel : ObservableObject
     private string _lastScanText = "아직 스캔하지 않음";
     public string LastScanText { get => _lastScanText; private set => Set(ref _lastScanText, value); }
 
-    public string GitHubHost => Host(Settings.GitHubApiUrl, "github.com");
-    public string GitLabHost => Host(Settings.GitLabUrl, "gitlab.com");
+    public string GitHubHost => Host(SyncOptions.NormalizeGitHubApiUrl(Settings.GitHubApiUrl), "github.com");
+    public string GitLabHost => Host(SyncOptions.NormalizeGitLabUrl(Settings.GitLabUrl), "gitlab.com");
 
     public int TotalCount => Pairs.Count;
     public int SyncedCount => Pairs.Count(p => Category(p) == "Synced");
@@ -155,7 +221,7 @@ public sealed class MainViewModel : ObservableObject
         else
         {
             CurrentPage = "Settings";
-            ShowToast("먼저 GitHub와 GitLab 접근 토큰(또는 GitSync 서버 주소)을 설정하세요.", "Warning");
+            ShowToast("먼저 설정에서 GitHub와 GitLab의 ID와 키를 입력하세요.", "Warning");
         }
     }
 
@@ -184,6 +250,7 @@ public sealed class MainViewModel : ObservableObject
         GitHubUser = GitLabUser = null;
         UpdateStats();
         OnPropertyChanged(nameof(IsServerMode));
+        OnPropertyChanged(nameof(CanEditPairs));
         OnPropertyChanged(nameof(ExecutionLocation));
         OnPropertyChanged(nameof(GitHubHost));
         OnPropertyChanged(nameof(GitLabHost));
@@ -198,7 +265,7 @@ public sealed class MainViewModel : ObservableObject
         if (Backend is null || !Settings.IsConfigured)
         {
             CurrentPage = "Settings";
-            ShowToast(Settings.IsServerMode ? "GitSync 서버 주소를 설정해야 합니다." : "GitHub와 GitLab 토큰을 모두 설정해야 합니다.", "Warning");
+            ShowToast(Settings.IsServerMode ? "GitSync 서버 주소를 설정해야 합니다." : "GitHub와 GitLab 키를 모두 설정해야 합니다.", "Warning");
             return;
         }
         var svc = Backend;
@@ -211,7 +278,7 @@ public sealed class MainViewModel : ObservableObject
             try { GitHubUser = await u1; } catch { GitHubUser = null; throw; }
             try { GitLabUser = await u2; } catch { GitLabUser = null; throw; }
 
-            BusyMessage = svc.IsRemote ? $"서버({svc.Location})에서 모든 저장소 검색 중…" : "모든 저장소 검색 중…";
+            BusyMessage = svc.IsRemote ? $"서버({svc.Location})에서 모든 저장소 검색 중…" : "저장소 목록 불러오는 중…";
             var pairs = await svc.ScanAsync(new Progress<string>(m => BusyMessage = m));
             if (svc is RemoteSyncClient rc)
             {
@@ -224,6 +291,7 @@ public sealed class MainViewModel : ObservableObject
             foreach (var p in pairs) Pairs.Add(new RepoPairViewModel(this, p));
             SelectedPair = Pairs.FirstOrDefault(p => p.Id == selectedId) ?? PairsView.Cast<RepoPairViewModel>().FirstOrDefault();
             UpdateStats();
+            if (svc is SyncService local) LoadChoices(local);
 
             if (!svc.IsRemote)   // the server already compared during its scan job
             {

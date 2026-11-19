@@ -70,13 +70,24 @@ public sealed class SyncService : ISyncBackend
         if (Options.IsGitLabConfigured) GitLab = new GitLabClient(Options.GitLabUrl, Options.GitLabToken);
     }
 
-    private GitHubClient RequireGitHub() => GitHub ?? throw new SyncException("GitHub 토큰이 설정되지 않았습니다.");
-    private GitLabClient RequireGitLab() => GitLab ?? throw new SyncException("GitLab 토큰이 설정되지 않았습니다.");
+    private GitHubClient RequireGitHub() => GitHub ?? throw new SyncException("GitHub 키(액세스 토큰)가 설정되지 않았습니다.");
+    private GitLabClient RequireGitLab() => GitLab ?? throw new SyncException("GitLab 키(액세스 토큰)가 설정되지 않았습니다.");
 
     // ───────────────────────────── connection ─────────────────────────────
 
     public async Task<string> TestGitHubAsync(CancellationToken ct = default) => await RequireGitHub().GetLoginAsync(ct);
-    public async Task<string> TestGitLabAsync(CancellationToken ct = default) => await RequireGitLab().GetUsernameAsync(ct);
+    public async Task<string> TestGitLabAsync(CancellationToken ct = default)
+    {
+        var user = await RequireGitLab().GetUsernameAsync(ct);
+        var expected = Options.GitLabUser.Trim();
+        if (expected.Length > 0 && !expected.Equals(user, StringComparison.OrdinalIgnoreCase))
+            throw new SyncException($"GitLab 키의 계정({user})이 입력한 ID({expected})와 다릅니다.");
+        return user;
+    }
+
+    /// <summary>Repositories seen by the last scan (used to pick pairs by hand).</summary>
+    public IReadOnlyList<RemoteRepo> LastGitHubRepos { get; private set; } = [];
+    public IReadOnlyList<RemoteRepo> LastGitLabRepos { get; private set; } = [];
 
     // ───────────────────────────── scan ─────────────────────────────
 
@@ -91,10 +102,41 @@ public sealed class SyncService : ISyncBackend
         var glTask = gl.GetProjectsAsync(Options.GitLabGroup, Options.IncludeArchived, ct);
         await Task.WhenAll(ghTask, glTask);
 
-        var pairs = Match(ghTask.Result, glTask.Result);
+        LastGitHubRepos = ghTask.Result;
+        LastGitLabRepos = glTask.Result;
+        var pairs = Options.ManualPairs ? MatchManual(ghTask.Result, glTask.Result) : Match(ghTask.Result, glTask.Result);
         Log.Success($"GitHub {ghTask.Result.Count}개, GitLab {glTask.Result.Count}개 → {pairs.Count}개 항목 " +
                     $"(매칭 {pairs.Count(p => p.HasBoth)}, GitHub만 {pairs.Count(p => p.GitLab is null)}, GitLab만 {pairs.Count(p => p.GitHub is null)})", "scan");
         return pairs;
+    }
+
+    /// <summary>Builds only the pairs the user listed by hand (<see cref="SyncOptions.Pairs"/>).</summary>
+    private List<RepoPair> MatchManual(List<RemoteRepo> ghRepos, List<RemoteRepo> glRepos)
+    {
+        static RemoteRepo? Find(List<RemoteRepo> repos, string key) =>
+            key.Length == 0 ? null
+            : repos.FirstOrDefault(r => r.FullName.Equals(key, StringComparison.OrdinalIgnoreCase))
+              ?? (key.Contains('/') ? null : repos.FirstOrDefault(r => r.Name.Equals(key, StringComparison.OrdinalIgnoreCase)));
+
+        var result = new List<RepoPair>();
+        foreach (var (ghKey, glKey) in Options.ParsePairs())
+        {
+            var gh = Find(ghRepos, ghKey);
+            // An empty side means "same name as the other side" (created on sync when it does not exist yet).
+            var gl = Find(glRepos, glKey.Length > 0 ? glKey : gh?.Name ?? "");
+            if (gh is null && glKey.Length > 0 && ghKey.Length == 0 && gl is not null)
+                gh = Find(ghRepos, gl.Name);
+            if (gh is null && gl is null)
+            {
+                Log.Warn($"'{ghKey}' ⇄ '{glKey}': 양쪽 모두에서 저장소를 찾지 못했습니다.", "scan");
+                continue;
+            }
+            var id = gh is not null ? "gh_" + gh.FullName : "gl_" + gl!.FullName;
+            if (result.Any(p => p.Id == id)) continue;
+            result.Add(new RepoPair { Id = id, Name = gh?.Name ?? gl!.Name, GitHub = gh, GitLab = gl });
+        }
+        foreach (var p in result) UpdateStatus(p);
+        return result.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private List<RepoPair> Match(List<RemoteRepo> ghRepos, List<RemoteRepo> glRepos)

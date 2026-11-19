@@ -31,11 +31,7 @@
 
                 <!-- Brand -->
                 <StackPanel Orientation="Horizontal" Margin="6,22,0,28">
-                    <Grid Width="40" Height="40">
-                        <Border CornerRadius="3" Background="{StaticResource BrandGradient}"/>
-                        <TextBlock Style="{StaticResource Icon}" Text="&#xE895;" FontSize="19" Foreground="White" HorizontalAlignment="Center"/>
-                    </Grid>
-                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                    <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="GitSync" FontFamily="{StaticResource DisplayFont}" FontSize="14" FontWeight="Bold"/>
                         <TextBlock Text="GitHub ⇄ GitLab" FontSize="11.5" Foreground="{StaticResource TextMuteBrush}"/>
                     </StackPanel>
@@ -54,7 +50,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE8F1;" FontSize="15"/>
                             <TextBlock Grid.Column="1" Text="저장소 비교" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Style="{StaticResource Pill}" Padding="7,1" Background="#33F2B84B"
+                            <Border Grid.Column="2" Style="{StaticResource Pill}" Padding="7,1" Background="Transparent"
                                     Visibility="{Binding OutOfSyncCount, Converter={StaticResource CountToVis}}">
                                 <TextBlock Text="{Binding OutOfSyncCount}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource WarningBrush}"/>
                             </Border>
@@ -70,7 +66,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE81C;" FontSize="15"/>
                             <TextBlock Grid.Column="1" Text="활동 로그" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                            <Border Grid.Column="2" Style="{StaticResource Pill}" Padding="7,1" Background="#33F2606E"
+                            <Border Grid.Column="2" Style="{StaticResource Pill}" Padding="7,1" Background="Transparent"
                                     Visibility="{Binding ErrorLogCount, Converter={StaticResource CountToVis}}">
                                 <TextBlock Text="{Binding ErrorLogCount}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource DangerBrush}"/>
                             </Border>
@@ -89,7 +85,7 @@
                 <StackPanel Grid.Row="3">
                     <TextBlock Text="실행 위치" Style="{StaticResource Caption}" Margin="8,0,0,8"/>
                     <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                            CornerRadius="3" Padding="12,9" Margin="0,0,0,14" Cursor="Hand" ToolTip="설정에서 변경">
+                            CornerRadius="0" Padding="12,9" Margin="0,0,0,14" Cursor="Hand" ToolTip="설정에서 변경">
                         <Border.InputBindings>
                             <MouseBinding MouseAction="LeftClick" Command="{Binding NavigateCommand}" CommandParameter="Settings"/>
                         </Border.InputBindings>
@@ -112,7 +108,7 @@
                     </Border>
                     <TextBlock Text="연결" Style="{StaticResource Caption}" Margin="8,0,0,8"/>
                     <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                            CornerRadius="3" Padding="12,10" Margin="0,0,0,8">
+                            CornerRadius="0" Padding="12,10" Margin="0,0,0,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -139,7 +135,7 @@
                         </Grid>
                     </Border>
                     <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                            CornerRadius="3" Padding="12,10">
+                            CornerRadius="0" Padding="12,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -235,8 +231,8 @@
 
         <!-- ═══════════════ Toast ═══════════════ -->
         <Border x:Name="Toast" Grid.ColumnSpan="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,24,52"
-                MaxWidth="520" Background="#1C1C1C" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
-                CornerRadius="3" Padding="14,12" Opacity="0" IsHitTestVisible="False">
+                MaxWidth="520" Background="#000000" BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1"
+                CornerRadius="0" Padding="14,12" Opacity="0" IsHitTestVisible="False">
             <Border.RenderTransform>
                 <TranslateTransform x:Name="ToastShift" Y="16"/>
             </Border.RenderTransform>
@@ -275,7 +271,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Border Width="28" Height="28" CornerRadius="3" VerticalAlignment="Top"
+                <Border Width="28" Height="28" CornerRadius="0" VerticalAlignment="Top"
                         Background="{Binding ToastKind, Converter={StaticResource StatusBrush}, ConverterParameter=Soft}">
                     <TextBlock Style="{StaticResource Icon}" HorizontalAlignment="Center" FontSize="13"
                                Text="{Binding ToastKind, Converter={StaticResource LogIcon}}"

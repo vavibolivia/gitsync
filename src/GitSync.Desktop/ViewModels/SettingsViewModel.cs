@@ -21,6 +21,8 @@ public sealed class SettingsViewModel : ObservableObject
         var s = SettingsStore.Load();
         _localOptions = s.Options;
         _mode = s.Mode;
+        _showAdvanced = s.IsServer;
+        _showAdvanced = s.IsServer;
         _serverUrl = s.ServerUrl;
         _serverKey = s.ServerKey;
         LoadFields(_localOptions);
@@ -80,7 +82,7 @@ public sealed class SettingsViewModel : ObservableObject
     public string? ServerTestResult { get => _serverTestResult; private set => Set(ref _serverTestResult, value); }
     public bool? ServerTestOk { get => _serverTestOk; private set => Set(ref _serverTestOk, value); }
 
-    public string TokenHint => IsServerMode ? "비워두면 서버에 저장된 토큰을 그대로 사용합니다." : "";
+    public string TokenHint => IsServerMode ? "비워두면 서버에 저장된 키를 그대로 사용합니다." : "";
     public string GitHubTokenState => IsServerMode ? (_serverHasGitHubToken ? "서버에 저장됨" : "서버에 없음") : "";
     public string GitLabTokenState => IsServerMode ? (_serverHasGitLabToken ? "서버에 저장됨" : "서버에 없음") : "";
 
@@ -88,7 +90,8 @@ public sealed class SettingsViewModel : ObservableObject
 
     private string _gitHubApiUrl = "", _gitHubToken = "", _gitHubOwner = "";
     private string _gitLabUrl = "", _gitLabToken = "", _gitLabGroup = "", _gitLabTargetNamespace = "", _gitLabVisibility = "private";
-    private string _cacheRoot = "", _nameMappings = "";
+    private string _cacheRoot = "", _nameMappings = "", _gitLabUser = "", _pairs = "";
+    private bool _showAdvanced;
     private bool _syncTags, _createMissingRepos, _includeArchived;
     private int _maxParallel, _autoSyncMinutes;
     private string? _gitHubTestResult, _gitLabTestResult;
@@ -98,6 +101,11 @@ public sealed class SettingsViewModel : ObservableObject
     public string GitHubApiUrl { get => _gitHubApiUrl; set => Dirty(ref _gitHubApiUrl, value); }
     public string GitHubToken { get => _gitHubToken; set => Dirty(ref _gitHubToken, value); }
     public string GitHubOwner { get => _gitHubOwner; set => Dirty(ref _gitHubOwner, value); }
+    public string GitLabUser { get => _gitLabUser; set => Dirty(ref _gitLabUser, value); }
+    /// <summary>Shows the rarely needed fields (server addresses, run location, sync options).</summary>
+    public bool ShowAdvanced { get => _showAdvanced; set => Set(ref _showAdvanced, value); }
+    /// <summary>Pairs added by hand, one "githubRepo=gitlabProject" per line (local mode).</summary>
+    public string Pairs => _pairs;
     public string GitLabUrl { get => _gitLabUrl; set => Dirty(ref _gitLabUrl, value); }
     public string GitLabToken { get => _gitLabToken; set => Dirty(ref _gitLabToken, value); }
     public string GitLabGroup { get => _gitLabGroup; set { Dirty(ref _gitLabGroup, value); OnPropertyChanged(nameof(EffectiveNamespace)); } }
@@ -133,7 +141,7 @@ public sealed class SettingsViewModel : ObservableObject
     {
         _loading = true;
         GitHubApiUrl = o.GitHubApiUrl; GitHubToken = o.GitHubToken; GitHubOwner = o.GitHubOwner;
-        GitLabUrl = o.GitLabUrl; GitLabToken = o.GitLabToken; GitLabGroup = o.GitLabGroup;
+        GitLabUrl = o.GitLabUrl; GitLabToken = o.GitLabToken; GitLabGroup = o.GitLabGroup; GitLabUser = o.GitLabUser; _pairs = o.Pairs ?? "";
         GitLabTargetNamespace = o.GitLabTargetNamespace; GitLabVisibility = o.GitLabVisibility;
         CacheRoot = o.CacheRoot; NameMappings = o.NameMappings;
         SyncTags = o.SyncTags; CreateMissingRepos = o.CreateMissingRepos; IncludeArchived = o.IncludeArchived;
@@ -149,11 +157,24 @@ public sealed class SettingsViewModel : ObservableObject
         _loading = false;
     }
 
+    /// <summary>Replaces the hand-made pair list and persists it right away (other unsaved edits are not written).</summary>
+    public void SavePairs(string pairs)
+    {
+        _pairs = pairs;
+        _localOptions.Pairs = pairs;
+        _localOptions.ManualPairs = true;
+        var stored = SettingsStore.Load();
+        stored.Options.Pairs = pairs;
+        stored.Options.ManualPairs = true;
+        SettingsStore.Save(stored);
+    }
+
     /// <summary>Engine options for running locally.</summary>
     public SyncOptions ToLocalOptions() => IsServerMode ? _localOptions.Clone() : new SyncOptions
     {
         GitHubApiUrl = GitHubApiUrl.Trim(), GitHubToken = GitHubToken.Trim(), GitHubOwner = GitHubOwner.Trim(),
         GitLabUrl = GitLabUrl.Trim(), GitLabToken = GitLabToken.Trim(), GitLabGroup = GitLabGroup.Trim(),
+        GitLabUser = GitLabUser.Trim(), ManualPairs = true, Pairs = _pairs,
         GitLabTargetNamespace = GitLabTargetNamespace.Trim(), GitLabVisibility = GitLabVisibility,
         CacheRoot = CacheRoot.Trim(), NameMappings = NameMappings,
         SyncTags = SyncTags, CreateMissingRepos = CreateMissingRepos, IncludeArchived = IncludeArchived,
@@ -236,7 +257,7 @@ public sealed class SettingsViewModel : ObservableObject
             ServerTestOk = true;
             ServerTestResult = status.Configured
                 ? "연결됨 · 서버 설정을 불러왔습니다"
-                : "연결됨 · 서버에 아직 토큰이 없습니다. 아래에 입력 후 저장하세요";
+                : "연결됨 · 서버에 아직 키가 없습니다. 위에 입력 후 저장하세요";
         }
         catch (Exception ex)
         {

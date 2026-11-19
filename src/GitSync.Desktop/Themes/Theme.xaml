@@ -395,7 +395,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Border x:Name="Track" Width="38" Height="22" CornerRadius="0" Background="{StaticResource InputBrush}"
+                        <Border x:Name="Track" Width="38" Height="22" CornerRadius="11" Background="{StaticResource InputBrush}"
                                 BorderBrush="{StaticResource BorderStrongBrush}" BorderThickness="1" VerticalAlignment="Top" Margin="0,1,0,0">
                             <Ellipse x:Name="Knob" Width="14" Height="14" Fill="{StaticResource TextDimBrush}" HorizontalAlignment="Left" Margin="4,0"/>
                         </Border>
